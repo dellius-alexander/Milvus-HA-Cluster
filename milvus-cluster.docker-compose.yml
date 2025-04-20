@@ -1,0 +1,937 @@
+#####################################################################
+# Define services for a distributed Milvus cluster, etcd, MinIO, and
+# monitoring
+services:
+  # etcd service (replica 1) for distributed coordination
+  etcd0:
+    build:
+      context: .
+      dockerfile: .devcontainer/etcd.Dockerfile
+    container_name: milvus_etcd0
+    environment:
+      - ETCD_NAME=etcd0
+      - ETCD_INITIAL_CLUSTER=etcd0=http://etcd0:2380,etcd1=http://etcd1:2380,etcd2=http://etcd2:2380
+      - ETCD_INITIAL_CLUSTER_STATE=new
+      - ETCD_INITIAL_CLUSTER_TOKEN=etcd-cluster
+      - ETCD_LISTEN_PEER_URLS=http://0.0.0.0:2380
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd0:2379
+      - ETCD_INITIAL_ADVERTISE_PEER_URLS=http://etcd0:2380
+    volumes:
+      - etcd0_data:/etcd_data
+    healthcheck:
+      test: [ "CMD", "etcdctl", "--endpoints=http://localhost:2379", "endpoint", "health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.2'
+          memory: 256M
+    depends_on:
+      nginx:
+        condition: service_started
+    restart: always
+    networks:
+      - etcd_network
+
+  # etcd replica 2
+  etcd1:
+    build:
+      context: .
+      dockerfile: .devcontainer/etcd.Dockerfile
+    container_name: milvus_etcd1
+    environment:
+      - ETCD_NAME=etcd1
+      - ETCD_INITIAL_CLUSTER=etcd0=http://etcd0:2380,etcd1=http://etcd1:2380,etcd2=http://etcd2:2380
+      - ETCD_INITIAL_CLUSTER_STATE=new
+      - ETCD_INITIAL_CLUSTER_TOKEN=etcd-cluster
+      - ETCD_LISTEN_PEER_URLS=http://0.0.0.0:2380
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd1:2379
+      - ETCD_INITIAL_ADVERTISE_PEER_URLS=http://etcd1:2380
+    volumes:
+      - etcd1_data:/etcd_data
+    healthcheck:
+      test: [ "CMD", "etcdctl", "--endpoints=http://localhost:2379", "endpoint", "health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.2'
+          memory: 256M
+    depends_on:
+      nginx:
+        condition: service_started
+    restart: always
+    networks:
+      - etcd_network
+
+  # etcd replica 3
+  etcd2:
+    build:
+      context: .
+      dockerfile: .devcontainer/etcd.Dockerfile
+    container_name: milvus_etcd2
+    environment:
+      - ETCD_NAME=etcd2
+      - ETCD_INITIAL_CLUSTER=etcd0=http://etcd0:2380,etcd1=http://etcd1:2380,etcd2=http://etcd2:2380
+      - ETCD_INITIAL_CLUSTER_STATE=new
+      - ETCD_INITIAL_CLUSTER_TOKEN=etcd-cluster
+      - ETCD_LISTEN_PEER_URLS=http://0.0.0.0:2380
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd2:2379
+      - ETCD_INITIAL_ADVERTISE_PEER_URLS=http://etcd2:2380
+    volumes:
+      - etcd2_data:/etcd_data
+    healthcheck:
+      test: [ "CMD", "etcdctl", "--endpoints=http://localhost:2379", "endpoint", "health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.2'
+          memory: 256M
+    depends_on:
+      nginx:
+        condition: service_started
+    restart: always
+    networks:
+      - etcd_network
+
+#####################################################################
+  # MinIO service (node 1) for object storage
+  minio0:
+    build:
+      context: .
+      dockerfile: .devcontainer/minio.Dockerfile
+    container_name: milvus_minio0
+    environment:
+    # Root user for MinIO administration
+      MINIO_ROOT_USER: admin
+      # Root password for MinIO (replace with a strong, unique password in production)
+      MINIO_ROOT_PASSWORD: "WW91ckdyYWZhbmFTdHJvbmdQYXNzd29yZDEyMw"
+      # Enable erasure coding for data redundancy
+      MINIO_ERASURE_CODING: true
+      # Address for MinIO console (web interface)
+      MINIO_CONSOLE_ADDRESS: ":9001"
+    ports:
+      - "9001:9001"     # used for connecting to the console
+    volumes:
+      - minio0_data:/data
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    restart: always
+    networks:
+      - minio_network
+
+  # MinIO node 2
+  minio1:
+    build:
+      context: .
+      dockerfile: .devcontainer/minio.Dockerfile
+    container_name: milvus_minio1
+    environment:
+      # Root user for MinIO administration
+      MINIO_ROOT_USER: admin
+      # Root password for MinIO (replace with a strong, unique password in production)
+      MINIO_ROOT_PASSWORD: "WW91ckdyYWZhbmFTdHJvbmdQYXNzd29yZDEyMw"
+      # Enable erasure coding for data redundancy
+      MINIO_ERASURE_CODING: true
+      # Address for MinIO console (web interface)
+      MINIO_CONSOLE_ADDRESS: ":9002"
+    ports:
+      - "9002:9002"     # used for connecting to the console
+    volumes:
+      - minio1_data:/data
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    restart: always
+    networks:
+      - minio_network
+
+  # MinIO node 3
+  minio2:
+    build:
+      context: .
+      dockerfile: .devcontainer/minio.Dockerfile
+    container_name: milvus_minio2
+    environment:
+      # Root user for MinIO administration
+      MINIO_ROOT_USER: admin
+      # Root password for MinIO (replace with a strong, unique password in production)
+      MINIO_ROOT_PASSWORD: "WW91ckdyYWZhbmFTdHJvbmdQYXNzd29yZDEyMw"
+      # Enable erasure coding for data redundancy
+      MINIO_ERASURE_CODING: true
+      # Address for MinIO console (web interface)
+      MINIO_CONSOLE_ADDRESS: ":9003"
+    ports:
+      - "9003:9003"     # used for connecting to the console
+    volumes:
+      - minio2_data:/data
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    restart: always
+    networks:
+      - minio_network
+
+  # MinIO node 4
+  minio3:
+    build:
+      context: .
+      dockerfile: .devcontainer/minio.Dockerfile
+    container_name: milvus_minio3
+    environment:
+      # Root user for MinIO administration
+      MINIO_ROOT_USER: admin
+      # Root password for MinIO (replace with a strong, unique password in production)
+      MINIO_ROOT_PASSWORD: "WW91ckdyYWZhbmFTdHJvbmdQYXNzd29yZDEyMw"
+      # Enable erasure coding for data redundancy
+      MINIO_ERASURE_CODING: true
+      # Address for MinIO console (web interface)
+      MINIO_CONSOLE_ADDRESS: ":9004"
+    ports:
+      - "9004:9004"
+    volumes:
+      - minio3_data:/data
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    restart: always
+    networks:
+      - minio_network
+
+####################################################################
+  # Pulsar service
+  pulsar:
+    build:
+      context: .
+      dockerfile: .devcontainer/pulsar.Dockerfile
+    container_name: milvus-pulsar
+    hostname: pulsar
+    volumes:
+      - pulsar_data:/pulsar/data
+    environment:
+      - HOSTNAME=pulsar
+      - PORT=8080
+      # bin/apply-config-from-env.py script will modify the configuration file based on the environment variables
+      # nettyMaxFrameSizeBytes must be calculated from maxMessageSize + 10240 (padding)
+      - nettyMaxFrameSizeBytes=104867840 # this is 104857600 + 10240 (padding)
+      - defaultRetentionTimeInMinutes=10080
+      - defaultRetentionSizeInMB=8192
+      # maxMessageSize is missing from standalone.conf, must use PULSAR_PREFIX_ to get it configured
+      - PULSAR_PREFIX_maxMessageSize=104857600
+      - PULSAR_GC=-XX:+UseG1GC
+    command: >
+      /bin/bash -c \
+      "bin/apply-config-from-env.py conf/standalone.conf && \
+      exec bin/pulsar standalone --no-functions-worker --no-stream-storage"
+    networks:
+      - milvus_network
+    expose:
+      - "8080"
+      - "6650"
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: [ "CMD", "bin/pulsar-admin", "brokers", "healthcheck" ]
+      start_period: 60s
+      interval: 30s
+      timeout: 20s
+      retries: 5
+
+  ####################################################################
+  # Milvus root coordinator service
+  milvus_rootcoord:
+    build:
+      context: .
+      dockerfile: .devcontainer/milvus.Dockerfile
+    container_name: milvus_rootcoord
+    hostname: milvus_rootcoord
+    command: ["run", "rootcoord"]
+    environment:
+      - ETCD_ENDPOINTS=milvus_nginx:2379
+      - MINIO_ADDRESS=milvus_nginx:9000
+      - PULSAR_ADDRESS=pulsar://pulsar:6650
+      - ROOT_COORD_ADDRESS=milvus_rootcoord:53100
+    volumes:
+      - milvus_data:/milvus/data
+      - milvus_logs:/milvus/logs
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:53100/health" ]
+      start_period: 60s
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      etcd0:
+        condition: service_healthy
+      minio0:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 2G
+    restart: always
+    networks:
+      - milvus_network
+
+#  # Milvus proxy service (replica 1)
+#  milvus_proxy1:
+#    build:
+#      context: .
+#      dockerfile: .devcontainer/milvus.Dockerfile
+#    container_name: milvus_proxy1
+#    hostname: milvus_proxy1
+#    command: ["milvus", "run", "proxy"]
+#    environment:
+#      - ETCD_ENDPOINTS=nginx:2379
+#      - MINIO_ADDRESS=nginx:9000
+#      - PULSAR_ADDRESS=pulsar:6650
+#    expose:
+#      - "19530"
+#      - "9091"
+#    volumes:
+#      - milvus_data:/milvus/data
+#      - milvus_logs:/milvus/logs
+#    healthcheck:
+#      test: [ "CMD", "curl", "-f", "http://localhost:9091/health" ]
+#      start_period: 60s
+#      interval: 30s
+#      timeout: 5s
+#      retries: 5
+#    depends_on:
+#      etcd0:
+#        condition: service_healthy
+#      minio0:
+#        condition: service_healthy
+#      milvus_rootcoord:
+#        condition: service_healthy
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '1.0'
+#          memory: 4G
+#        reservations:
+#          cpus: '0.5'
+#          memory: 2G
+#    restart: always
+#    networks:
+#      - milvus_network
+#
+#  # Milvus proxy replica 2
+#  milvus_proxy2:
+#    build:
+#      context: .
+#      dockerfile: .devcontainer/milvus.Dockerfile
+#    container_name: milvus_proxy2
+#    hostname: milvus_proxy2
+#    command: ["milvus", "run", "proxy"]
+#    environment:
+#      - ETCD_ENDPOINTS=nginx:2379
+#      - MINIO_ADDRESS=nginx:9000
+#      - PULSAR_ADDRESS=pulsar:6650
+#    expose:
+#      - "19530"
+#      - "9091"
+#    volumes:
+#      - milvus_data:/milvus/data
+#      - milvus_logs:/milvus/logs
+#    healthcheck:
+#      test: [ "CMD", "curl", "-f", "http://localhost:9091/health" ]
+#      start_period: 60s
+#      interval: 30s
+#      timeout: 5s
+#      retries: 5
+#    depends_on:
+#      etcd0:
+#        condition: service_healthy
+#      minio0:
+#        condition: service_healthy
+#      milvus_rootcoord:
+#        condition: service_healthy
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '1.0'
+#          memory: 4G
+#        reservations:
+#          cpus: '0.5'
+#          memory: 2G
+#    restart: always
+#    networks:
+#      - milvus_network
+#
+#  # Milvus query coordinator service
+#  milvus_querycoord:
+#    build:
+#      context: .
+#      dockerfile: .devcontainer/milvus.Dockerfile
+#    container_name: milvus_querycoord
+#    hostname: milvus_querycoord
+#    command: ["milvus", "run", "querycoord"]
+#    environment:
+#      - ETCD_ENDPOINTS=nginx:2379
+#      - MINIO_ADDRESS=nginx:9000
+#      - PULSAR_ADDRESS=pulsar:6650
+#    volumes:
+#      - milvus_data:/milvus/data
+#      - milvus_logs:/milvus/logs
+#    healthcheck:
+#      test: [ "CMD", "curl", "-f", "http://localhost:53101/health" ]
+#      start_period: 60s
+#      interval: 30s
+#      timeout: 5s
+#      retries: 5
+#    depends_on:
+#      etcd0:
+#        condition: service_healthy
+#      minio0:
+#        condition: service_healthy
+#      milvus_rootcoord:
+#        condition: service_healthy
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '1.0'
+#          memory: 4G
+#        reservations:
+#          cpus: '0.5'
+#          memory: 2G
+#    restart: always
+#    networks:
+#      - milvus_network
+#
+#  # Milvus query node (replica 1)
+#  milvus_querynode1:
+#    build:
+#      context: .
+#      dockerfile: .devcontainer/milvus.Dockerfile
+#    container_name: milvus_querynode1
+#    hostname: milvus_querynode1
+#    command: ["milvus", "run", "querynode"]
+#    environment:
+#      - ETCD_ENDPOINTS=nginx:2379
+#      - MINIO_ADDRESS=nginx:9000
+#      - PULSAR_ADDRESS=pulsar:6650
+#    volumes:
+#      - milvus_data:/milvus/data
+#      - milvus_logs:/milvus/logs
+#    healthcheck:
+#      test: [ "CMD", "curl", "-f", "http://localhost:53102/health" ]
+#      start_period: 60s
+#      interval: 30s
+#      timeout: 5s
+#      retries: 5
+#    depends_on:
+#      etcd0:
+#        condition: service_healthy
+#      minio0:
+#        condition: service_healthy
+#      milvus_querycoord:
+#        condition: service_healthy
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '2.0'
+#          memory: 8G
+#        reservations:
+#          cpus: '1.0'
+#          memory: 4G
+#    restart: always
+#    networks:
+#      - milvus_network
+#
+#  # Milvus query node replica 2
+#  milvus_querynode2:
+#    build:
+#      context: .
+#      dockerfile: .devcontainer/milvus.Dockerfile
+#    container_name: milvus_querynode2
+#    hostname: milvus_querynode2
+#    command: ["milvus", "run", "querynode"]
+#    environment:
+#      - ETCD_ENDPOINTS=nginx:2379
+#      - MINIO_ADDRESS=nginx:9000
+#      - PULSAR_ADDRESS=pulsar:6650
+#    volumes:
+#      - milvus_data:/milvus/data
+#      - milvus_logs:/milvus/logs
+#    healthcheck:
+#      test: [ "CMD", "curl", "-f", "http://localhost:53102/health" ]
+#      start_period: 60s
+#      interval: 30s
+#      timeout: 5s
+#      retries: 5
+#    depends_on:
+#      etcd0:
+#        condition: service_healthy
+#      minio0:
+#        condition: service_healthy
+#      milvus_querycoord:
+#        condition: service_healthy
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '2.0'
+#          memory: 8G
+#        reservations:
+#          cpus: '1.0'
+#          memory: 4G
+#    restart: always
+#    networks:
+#      - milvus_network
+#
+#  # Milvus data coordinator service
+#  milvus_datacoord:
+#    build:
+#      context: .
+#      dockerfile: .devcontainer/milvus.Dockerfile
+#    container_name: milvus_datacoord
+#    hostname: milvus_datacoord
+#    command: ["milvus", "run", "datacoord"]
+#    environment:
+#      - ETCD_ENDPOINTS=nginx:2379
+#      - MINIO_ADDRESS=nginx:9000
+#      - PULSAR_ADDRESS=pulsar:6650
+#    volumes:
+#      - milvus_data:/milvus/data
+#      - milvus_logs:/milvus/logs
+#    healthcheck:
+#      test: [ "CMD", "curl", "-f", "http://localhost:53103/health" ]
+#      start_period: 60s
+#      interval: 30s
+#      timeout: 5s
+#      retries: 5
+#    depends_on:
+#      etcd0:
+#        condition: service_healthy
+#      minio0:
+#        condition: service_healthy
+#      milvus_rootcoord:
+#        condition: service_healthy
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '1.0'
+#          memory: 4G
+#        reservations:
+#          cpus: '0.5'
+#          memory: 2G
+#    restart: always
+#    networks:
+#      - milvus_network
+#
+#  # Milvus data node (replica 1)
+#  milvus_datanode1:
+#    build:
+#      context: .
+#      dockerfile: .devcontainer/milvus.Dockerfile
+#    container_name: milvus_datanode1
+#    hostname: milvus_datanode1
+#    command: ["milvus", "run", "datanode"]
+#    environment:
+#      - ETCD_ENDPOINTS=nginx:2379
+#      - MINIO_ADDRESS=nginx:9000
+#      - PULSAR_ADDRESS=pulsar:6650
+#    volumes:
+#      - milvus_data:/milvus/data
+#      - milvus_logs:/milvus/logs
+#    healthcheck:
+#      test: [ "CMD", "curl", "-f", "http://localhost:53104/health" ]
+#      start_period: 60s
+#      interval: 30s
+#      timeout: 5s
+#      retries: 5
+#    depends_on:
+#      etcd0:
+#        condition: service_healthy
+#      minio0:
+#        condition: service_healthy
+#      milvus_datacoord:
+#        condition: service_healthy
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '2.0'
+#          memory: 8G
+#        reservations:
+#          cpus: '1.0'
+#          memory: 4G
+#    restart: always
+#    networks:
+#      - milvus_network
+#
+#  # Milvus data node replica 2
+#  milvus_datanode2:
+#    build:
+#      context: .
+#      dockerfile: .devcontainer/milvus.Dockerfile
+#    container_name: milvus_datanode2
+#    hostname: milvus_datanode2
+#    command: ["milvus", "run", "datanode"]
+#    environment:
+#      - ETCD_ENDPOINTS=nginx:2379
+#      - MINIO_ADDRESS=nginx:9000
+#      - PULSAR_ADDRESS=pulsar:6650
+#    volumes:
+#      - milvus_data:/milvus/data
+#      - milvus_logs:/milvus/logs
+#    healthcheck:
+#      test: [ "CMD", "curl", "-f", "http://localhost:531怪/health" ]
+#      start_period: 60s
+#      interval: 30s
+#      timeout: 5s
+#      retries: 5
+#    depends_on:
+#      etcd0:
+#        condition: service_healthy
+#      minio0:
+#        condition: service_healthy
+#      milvus_datacoord:
+#        condition: service_healthy
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '2.0'
+#          memory: 8G
+#        reservations:
+#          cpus: '1.0'
+#          memory: 4G
+#    restart: always
+#    networks:
+#      - milvus_network
+#
+#  # Milvus index coordinator service
+#  milvus_indexcoord:
+#    build:
+#      context: .
+#      dockerfile: .devcontainer/milvus.Dockerfile
+#    container_name: milvus_indexcoord
+#    hostname: milvus_indexcoord
+#    command: ["milvus", "run", "indexcoord"]
+#    environment:
+#      - ETCD_ENDPOINTS=nginx:2379
+#      - MINIO_ADDRESS=nginx:9000
+#      - PULSAR_ADDRESS=pulsar:6650
+#    volumes:
+#      - milvus_data:/milvus/data
+#      - milvus_logs:/milvus/logs
+#    healthcheck:
+#      test: [ "CMD", "curl", "-f", "http://localhost:53105/health" ]
+#      start_period: 60s
+#      interval: 30s
+#      timeout: 5s
+#      retries: 5
+#    depends_on:
+#      etcd0:
+#        condition: service_healthy
+#      minio0:
+#        condition: service_healthy
+#      milvus_rootcoord:
+#        condition: service_healthy
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '1.0'
+#          memory: 4G
+#        reservations:
+#          cpus: '0.5'
+#          memory: 2G
+#    restart: always
+#    networks:
+#      - milvus_network
+#
+#  # Milvus index node (replica 1)
+#  milvus_indexnode1:
+#    build:
+#      context: .
+#      dockerfile: .devcontainer/milvus.Dockerfile
+#    container_name: milvus_indexnode1
+#    hostname: milvus_indexnode1
+#    command: ["milvus", "run", "indexnode"]
+#    environment:
+#      - ETCD_ENDPOINTS=nginx:2379
+#      - MINIO_ADDRESS=nginx:9000
+#      - PULSAR_ADDRESS=pulsar:6650
+#    volumes:
+#      - milvus_data:/milvus/data
+#      - milvus_logs:/milvus/logs
+#    healthcheck:
+#      test: [ "CMD", "curl", "-f", "http://localhost:53106/health" ]
+#      start_period: 60s
+#      interval: 30s
+#      timeout: 5s
+#      retries: 5
+#    depends_on:
+#      etcd0:
+#        condition: service_healthy
+#      minio0:
+#        condition: service_healthy
+#      milvus_indexcoord:
+#        condition: service_healthy
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '2.0'
+#          memory: 8G
+#        reservations:
+#          cpus: '1.0'
+#          memory: 4G
+#    restart: always
+#    networks:
+#      - milvus_network
+#
+#  # Milvus index node replica 2
+#  milvus_indexnode2:
+#    build:
+#      context: .
+#      dockerfile: .devcontainer/milvus.Dockerfile
+#    container_name: milvus_indexnode2
+#    hostname: milvus_indexnode2
+#    command: ["milvus", "run", "indexnode"]
+#    environment:
+#      - ETCD_ENDPOINTS=nginx:2379
+#      - MINIO_ADDRESS=nginx:9000
+#      - PULSAR_ADDRESS=pulsar:6650
+#    volumes:
+#      - milvus_data:/milvus/data
+#      - milvus_logs:/milvus/logs
+#    healthcheck:
+#      test: [ "CMD", "curl", "-f", "http://localhost:53106/health" ]
+#      start_period: 60s
+#      interval: 30s
+#      timeout: 5s
+#      retries: 5
+#    depends_on:
+#      etcd0:
+#        condition: service_healthy
+#      minio0:
+#        condition: service_healthy
+#      milvus_indexcoord:
+#        condition: service_healthy
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '2.0'
+#          memory: 8G
+#        reservations:
+#          cpus: '1.0'
+#          memory: 4G
+#    restart: always
+#    networks:
+#      - milvus_network
+
+  ####################################################################
+  # Load balancer
+  nginx:
+    build:
+      context: .
+      dockerfile: .devcontainer/nginx.Dockerfile
+    container_name: milvus_nginx
+    hostname: milvus_nginx
+    expose:
+      - "8001"
+    ports:
+      - "2379:2379"
+      - "9000:9000"
+      - "19530:19530"
+      - "9091:9091"
+      - "8001:8001"
+    volumes:
+      - nginx_data:/etc/nginx
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://milvus_nginx:8001/healthz", " | echo $$(grep -q 'ok' )"]
+      interval: 60s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.2'
+          memory: 256M
+    restart: always
+    networks:
+      - etcd_network
+      - minio_network
+      - milvus_network
+      - external_network
+
+  ####################################################################
+  # Prometheus service for monitoring (optional but recommended)
+  prometheus:
+    # Use a custom Dockerfile for Prometheus to ensure optimized configuration
+    build:
+      context: .
+      dockerfile: .devcontainer/prometheus.Dockerfile
+    # Container name for easy identification
+    container_name: milvus_prometheus
+    # Prometheus environment variables
+    environment:
+      # Log level for Prometheus (info for production, debug for troubleshooting)
+      PROMETHEUS_LOG_LEVEL: info
+    # Mount custom Prometheus configuration
+    volumes:
+      - prometheus_data:/prometheus
+    # Expose Prometheus port
+    ports:
+      - "9090:9090"
+    # Restart policy
+    restart: always
+    networks:
+      - milvus_network
+
+  ####################################################################
+  # Grafana service for visualization
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: milvus_grafana
+    environment:
+      # Admin user for Grafana web interface
+      GF_SECURITY_ADMIN_USER: admin
+      # Admin password for Grafana (replace with a strong, unique password in production)
+      GF_SECURITY_ADMIN_PASSWORD: "WW91ckdyYWZhbmFTdHJvbmdQYXNzd29yZDEyMw"
+      # Log level for Grafana (info for production, debug for troubleshooting)
+      GF_LOG_LEVEL: info
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: always
+    networks:
+      - milvus_network
+
+  ####################################################################
+#  # Node exporter for host metrics
+#  node_exporter:
+#    image: prom/node-exporter:v1.8.0
+#    container_name: milvus_node_exporter
+#    ports:
+#      - "9100:9100"
+#    volumes:
+#      - /proc:/host/proc:ro
+#      - /sys:/host/sys:ro
+#      - /:/rootfs:ro
+#    command:
+#      - '--path.procfs=/host/proc'
+#      - '--path.sysfs=/host/sys'
+#      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+#    restart: always
+#    networks:
+#      - milvus_network
+
+####################################################################
+# Define persistent volumes for data durability
+volumes:
+  etcd0_data:
+    name: milvus_etcd0_data
+  etcd1_data:
+    name: milvus_etcd1_data
+  etcd2_data:
+    name: milvus_etcd2_data
+  nginx_data:
+    name: milvus_nginx_data
+  minio0_data:
+    name: milvus_minio0_data
+  minio1_data:
+    name: milvus_minio1_data
+  minio2_data:
+    name: milvus_minio2_data
+  minio3_data:
+    name: milvus_minio3_data
+  milvus_data:
+    name: milvus_milvus_data
+  milvus_logs:
+    name: milvus_milvus_logs
+  prometheus_data:
+    name: milvus_prometheus_data
+  grafana_data:
+    name: milvus_grafana_data
+  pulsar_data:
+    name: milvus_pulsar_data
+
+####################################################################
+# Define internal network for secure communication
+networks:
+  etcd_network:
+    driver: bridge
+    ipam:
+      driver: default
+  minio_network:
+    driver: bridge
+    ipam:
+      driver: default
+  milvus_network:
+    driver: bridge
+    ipam:
+      driver: default
+  external_network:
+    driver: bridge
+    ipam:
+      driver: default

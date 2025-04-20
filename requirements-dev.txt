@@ -1,0 +1,7 @@
+-r requirements.txt
+pyinstaller
+pytest
+black
+pip~=25.0.1
+poetry
+poetry-pyinstaller-plugin~=1.2.0
