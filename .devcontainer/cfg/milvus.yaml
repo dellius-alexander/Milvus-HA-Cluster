@@ -19,7 +19,8 @@ etcd:
   # Endpoints used to access etcd service. You can change this parameter as the endpoints of your own etcd cluster.
   # Environment variable: ETCD_ENDPOINTS
   # etcd preferentially acquires valid address from environment variable ETCD_ENDPOINTS when Milvus is started.
-  endpoints: localhost:2379
+  endpoints:
+  - etcd:2379
   # Root prefix of the key to where Milvus stores data in etcd.
   # It is recommended to change this parameter before starting Milvus for the first time.
   # To share an etcd instance among multiple Milvus instances, consider changing this to a different value for each Milvus instance before you start them.
@@ -72,7 +73,7 @@ metastore:
 # Notice that when TiKV is enabled for metastore, you still need to have etcd for service discovery.
 # TiKV is a good option when the metadata size requires better horizontal scalability.
 tikv:
-  endpoints: 127.0.0.1:2389 # Note that the default pd port of tikv is 2379, which conflicts with etcd.
+  endpoints: 0.0.0.0:2389 # Note that the default pd port of tikv is 2379, which conflicts with etcd.
   rootPath: by-dev # The root path where data is stored in tikv
   metaSubPath: meta # metaRootPath = rootPath + '/' + metaSubPath
   kvSubPath: kv # kvRootPath = rootPath + '/' + kvSubPath
@@ -88,7 +89,7 @@ localStorage:
   # Local path to where vector data are stored during a search or a query to avoid repetitve access to MinIO or S3 service.
   # Caution: Changing this parameter after using Milvus for a period of time will affect your access to old data.
   # It is recommended to change this parameter before starting Milvus for the first time.
-  path: /var/lib/milvus/data/
+  path: /var/lib/milvus/data
 
 # Related configuration of MinIO/S3/GCS or any other service supports S3 API, which is responsible for data persistence for Milvus.
 # We refer to the storage service as MinIO/S3 in the following description for simplicity.
@@ -98,7 +99,7 @@ minio:
   # minio.address and minio.port together generate the valid access to MinIO or S3 service.
   # MinIO preferentially acquires the valid IP address from the environment variable MINIO_ADDRESS when Milvus is started.
   # Default value applies when MinIO or S3 is running on the same network with Milvus.
-  address: localhost
+  address: minio
   port: 9000 # Port of MinIO or S3 service.
   # Access key ID that MinIO or S3 issues to user for authorized access.
   # Environment variable: MINIO_ACCESS_KEY_ID or minio.accessKeyID
@@ -184,9 +185,9 @@ pulsar:
   # pulsar.address and pulsar.port together generate the valid access to Pulsar.
   # Pulsar preferentially acquires the valid IP address from the environment variable PULSAR_ADDRESS when Milvus is started.
   # Default value applies when Pulsar is running on the same network with Milvus.
-  address: localhost
+  address: pulsar
   port: 6650 # Port of Pulsar service.
-  webport: 80 # Web port of of Pulsar service. If you connect direcly without proxy, should use 8080.
+  webport: 80 # Web port of Pulsar service. If you connect direcly without proxy, should use 8080.
   # The maximum size of each message in Pulsar. Unit: Byte.
   # By default, Pulsar can transmit at most 2MB of data in a single message. When the size of inserted data is greater than this value, proxy fragments the data into multiple messages to ensure that they can be transmitted correctly.
   # If the corresponding parameter in Pulsar remains unchanged, increasing this configuration will cause Milvus to fail, and reducing it produces no advantage.
@@ -261,7 +262,7 @@ rootCoord:
   maxDatabaseNum: 64 # Maximum number of database
   maxGeneralCapacity: 65536 # upper limit for the sum of of product of partitionNumber and shardNumber
   gracefulStopTimeout: 5 # seconds. force stop node without graceful stop
-  ip:  # TCP/IP address of rootCoord. If not specified, use the first unicastable address
+  ip: 0.0.0.0   # TCP/IP address of rootCoord. If not specified, use the first unicastable address
   port: 53100 # TCP port of rootCoord
   grpc:
     serverMaxSendSize: 536870912 # The maximum size of each RPC request that the rootCoord can send, unit: byte
@@ -319,7 +320,7 @@ proxy:
     port:  # high-level restful api
     acceptTypeAllowInt64: true # high-level restful api, whether http client can deal with int64
     enablePprof: true # Whether to enable pprof middleware on the metrics port
-  ip:  # TCP/IP address of proxy. If not specified, use the first unicastable address
+  ip: 0.0.0.0  # TCP/IP address of proxy. If not specified, use the first unicastable address
   port: 19530 # TCP port of proxy
   internalPort: 19529
   grpc:
@@ -385,7 +386,7 @@ queryCoord:
   checkExecutedFlagInterval: 100 # the interval of check executed flag to force to pull dist
   updateCollectionLoadStatusInterval: 5 # 5m, max interval of updating collection loaded status for check health
   cleanExcludeSegmentInterval: 60 # the time duration of clean pipeline exclude segment which used for filter invalid data, in seconds
-  ip:  # TCP/IP address of queryCoord. If not specified, use the first unicastable address
+  ip: 0.0.0.0  # TCP/IP address of queryCoord. If not specified, use the first unicastable address
   port: 19531 # TCP port of queryCoord
   grpc:
     serverMaxSendSize: 536870912 # The maximum size of each RPC request that the queryCoord can send, unit: byte
@@ -490,7 +491,7 @@ queryNode:
   bloomFilterApplyParallelFactor: 4 # parallel factor when to apply pk to bloom filter, default to 4*CPU_CORE_NUM
   workerPooling:
     size: 10 # the size for worker querynode client pool
-  ip:  # TCP/IP address of queryNode. If not specified, use the first unicastable address
+  ip: 0.0.0.0 # TCP/IP address of queryNode. If not specified, use the first unicastable address
   port: 21123 # TCP port of queryNode
   grpc:
     serverMaxSendSize: 536870912 # The maximum size of each RPC request that the queryNode can send, unit: byte
@@ -509,7 +510,7 @@ indexCoord:
 indexNode:
   scheduler:
     buildParallel: 1
-  ip:  # TCP/IP address of indexNode. If not specified, use the first unicastable address
+  ip: 0.0.0.0 # TCP/IP address of indexNode. If not specified, use the first unicastable address
   port: 21121 # TCP port of indexNode
   grpc:
     serverMaxSendSize: 536870912 # The maximum size of each RPC request that the indexNode can send, unit: byte
@@ -649,7 +650,7 @@ dataCoord:
   jsonStatsTriggerInterval: 10 # jsonkey task interval per trigger
   enabledJSONKeyStatsInSort: false # Indicates whether to enable JSON key stats task with sort
   jsonKeyStatsMemoryBudgetInTantivy: 16777216 # the memory budget for the JSON index In Tantivy, the unit is bytes
-  ip:  # TCP/IP address of dataCoord. If not specified, use the first unicastable address
+  ip: 0.0.0.0 # TCP/IP address of dataCoord. If not specified, use the first unicastable address
   port: 13333 # TCP port of dataCoord
   grpc:
     serverMaxSendSize: 536870912 # The maximum size of each RPC request that the dataCoord can send, unit: byte
@@ -712,7 +713,7 @@ dataNode:
   bloomFilterApplyParallelFactor: 4 # parallel factor when to apply pk to bloom filter, default to 4*CPU_CORE_NUM
   storage:
     deltalog: json # deltalog format, options: [json, parquet]
-  ip:  # TCP/IP address of dataNode. If not specified, use the first unicastable address
+  ip: 0.0.0.0 # TCP/IP address of dataNode. If not specified, use the first unicastable address
   port: 21124 # TCP port of dataNode
   grpc:
     serverMaxSendSize: 536870912 # The maximum size of each RPC request that the dataNode can send, unit: byte
@@ -844,7 +845,7 @@ common:
     authorizationEnabled: true
     # The superusers will ignore some system check processes,
     # like the old password verification when updating the credential
-    superUsers: root, developer
+    superUsers: root
     defaultRootPassword: "Milvus" # default password for root user. The maximum length is 72 characters, and double quotes are required.
     rootShouldBindRole: false # Whether the root user should bind a role when the authorization is enabled.
     enablePublicPrivilege: true # Whether to enable public privilege
@@ -1118,8 +1119,8 @@ trace:
   jaeger:
     url:  # when exporter is jaeger should set the jaeger's URL
   otlp:
-    endpoint:  # example: "127.0.0.1:4317" for grpc, "127.0.0.1:4318" for http
-    method:  # otlp export method, acceptable values: ["grpc", "http"],  using "grpc" by default
+    endpoint: 127.0.0.1:4317 # example: "127.0.0.1:4317" for grpc, "127.0.0.1:4318" for http
+    method: grpc # otlp export method, acceptable values: ["grpc", "http"],  using "grpc" by default
     secure: true
   initTimeoutSeconds: 10 # segcore initialization timeout in seconds, preventing otlp grpc hangs forever
 
@@ -1135,7 +1136,7 @@ gpu:
 
 # Any configuration related to the streaming node server.
 streamingNode:
-  ip:  # TCP/IP address of streamingNode. If not specified, use the first unicastable address
+  ip: 0.0.0.0 # TCP/IP address of streamingNode. If not specified, use the first unicastable address
   port: 22222 # TCP port of streamingNode
   grpc:
     serverMaxSendSize: 268435456 # The maximum size of each RPC request that the streamingNode can send, unit: byte

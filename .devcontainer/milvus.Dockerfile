@@ -9,10 +9,10 @@ LABEL description="Custom Milvus standalone image for high-availability setup"
 RUN apt-get update && apt-get install -y curl && apt-get clean
 
 # Set working directory
-WORKDIR /milvus
+WORKDIR /var/lib/milvus
 
 # Copy custom configuration (optional, adjust as needed)
-COPY cluster/cfg/milvus-cluster.yaml /milvus/configs/milvus.yaml
+COPY .devcontainer/cfg/milvus.yaml /milvus/configs/milvus.yaml
 
 # Expose Milvus ports
 #EXPOSE 19530
