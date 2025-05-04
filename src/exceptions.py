@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# File: src/exceptions.py
+# File: src.exceptions.py
 
 # Custom exceptions
 class MilvusAPIError(Exception):

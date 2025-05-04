@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# File: logger.py
+# File: src.logger.py
 import traceback
 import logging
 import logging.config

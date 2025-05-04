@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# File: src/interfaces.py
+# File: src.interfaces.py
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional, Callable, Annotated
 import numpy as np

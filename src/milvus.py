@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# File: src/milvus.py
+# File: src.milvus.py
 """
 Milvus API Implementation
 
@@ -71,7 +71,7 @@ import datetime
 from src.exceptions import MilvusAPIError, MilvusValidationError
 from src.interfaces import IConnectAPI, ICollectionAPI, IVectorAPI, ISearchAPI, IIndexAPI, IPartitionAPI, IStatAPI, \
     IEmbeddingAPI, IMonitorAPI, IAdminAPI, IDataImportAPI, IStrategy, ICommand, IOperation, IState
-from src.utils import log_decorator, SecurityManager
+from src.utils import async_log_decorator, SecurityManager
 from src.logger import getLogger as GetLogger
 
 
@@ -110,7 +110,7 @@ class SingletonMeta(type):
         """
         Creates or returns the singleton instance.
 
-        Parameters:
+        Args:
             cls (type): The class being instantiated.
             *args: Positional arguments for class initialization.
             **kwargs: Keyword arguments for class initialization.
@@ -150,7 +150,7 @@ class CollectionFactory:
         """
          Creates a standard collection with ID and vector fields.
 
-         Parameters:
+         Args:
              collection_name (str): Name of the collection.
              dimension (int): Dimension of the vector field.
              db_name (str): Name of the database.
@@ -203,7 +203,7 @@ class CollectionSchemaBuilder:
         """
         Adds a field to the schema.
 
-        Parameters:
+        Args:
             name (str): Name of the field.
             dtype (DataType): Data type of the field.
             **kwargs: Additional field parameters.
@@ -218,7 +218,7 @@ class CollectionSchemaBuilder:
         """
         Sets the schema description.
 
-        Parameters:
+        Args:
             description (str): Description of the schema.
 
         Returns:
@@ -267,7 +267,7 @@ class InsertStrategy(IStrategy):
         """
         Performs the insertion operation.
 
-        Parameters:
+        Args:
             api (VectorAPI): The vector API instance.
             collection_name (str): Name of the collection.
             entities (List[Dict[str, Any]]): Entities to insert.
@@ -308,7 +308,7 @@ class SearchStrategy(IStrategy):
         """
         Performs the search operation.
 
-        Parameters:
+        Args:
             api (ISearchAPI): The search API instance.
             collection_name (str): Name of the collection.
             data (List[List[float]]): Query vectors.
@@ -399,7 +399,7 @@ class InsertOperation(IOperation):
         """
         Validates the input parameters for the insertion operation.
 
-        Parameters:
+        Args:
             collection_name (str): Name of the collection.
             entities (List[Dict[str, Any]]): Entities to insert.
             **kwargs: Additional parameters.
@@ -431,7 +431,7 @@ class InsertOperation(IOperation):
         """
         Performs the insertion operation.
 
-        Parameters:
+        Args:
             collection_name (str): Name of the collection.
             entities (List[Dict[str, Any]]): Entities to insert.
             **kwargs: Additional parameters.
@@ -445,7 +445,7 @@ class InsertOperation(IOperation):
         """
         Handles post-processing of the insertion result.
 
-        Parameters:
+        Args:
             result: Result of the insertion operation.
 
         """
@@ -525,7 +525,7 @@ class CollectionComposite:
         """
         Adds a component to the composite.
 
-        Parameters:
+        Args:
             component: The component to add.
         """
         self.children.append(component)
@@ -534,7 +534,7 @@ class CollectionComposite:
         """
         Removes a component from the composite.
 
-        Parameters:
+        Args:
             component: The component to remove.
         """
         self.children.remove(component)
@@ -563,7 +563,7 @@ class LoadedState(IState):
         """
         Handles the loaded state behavior.
 
-        Parameters:
+        Args:
             context: The context in which the state operates.
         """
         log.info("Collection is loaded")
@@ -592,7 +592,7 @@ class Mediator:
         """
         Notifies the mediator of an event.
 
-        Parameters:
+        Args:
             sender: The sender of the event.
             event: The event details.
         """
@@ -630,7 +630,7 @@ class Proxy:
         """
         Handles the proxied request with authorization.
 
-        Parameters:
+        Args:
             *args: Positional arguments for the request.
             **kwargs: Keyword arguments for the request.
 
@@ -673,7 +673,7 @@ class FlyweightFactory:
         """
         Retrieves or creates a flyweight object.
 
-        Parameters:
+        Args:
             key: The key identifying the flyweight.
 
         Returns:
@@ -706,7 +706,7 @@ class QueryInterpreter:
         """
         Interprets a query expression.
 
-        Parameters:
+        Args:
             expression (str): The query expression to interpret.
 
         Returns:
@@ -783,7 +783,7 @@ class ConnectAPI(IConnectAPI):
         """
         Ensures a singleton instance of ConnectAPI.
 
-        Parameters:
+        Args:
             *args: Positional arguments.
             **kwargs: Keyword arguments.
 
@@ -820,7 +820,7 @@ class ConnectAPI(IConnectAPI):
         else:
             log.warning("ConnectAPI instance already exists. Using existing parameters.")
 
-    @log_decorator
+    @async_log_decorator
     async def connect(self, alias: str = "default", user: str = "milvus", password: str = "developer",
                       host: str = "127.0.0.1", port: str = "19530", timeout: int = 30, **kwargs):
         """Establishes a connection to the Milvus server.
@@ -846,7 +846,7 @@ class ConnectAPI(IConnectAPI):
         else:
             log.warning("Connection already initialized. Skipping reconnection.")
 
-    @log_decorator
+    @async_log_decorator
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10),
            retry=retry_if_exception_type(MilvusException))
     async def _connect(self, alias: str, user: str, password: str, host: str, port: str, **kwargs):
@@ -894,7 +894,7 @@ class ConnectAPI(IConnectAPI):
             log.error(f"Failed to connect: {e}")
             raise MilvusAPIError(f"Connection failed: {e}")
 
-    @log_decorator
+    @async_log_decorator
     async def disconnect(self):
         """Disconnects from the Milvus server.
 
@@ -909,7 +909,7 @@ class ConnectAPI(IConnectAPI):
             log.error(f"Failed to disconnect: {e}")
             raise MilvusAPIError(f"Disconnection failed: {e}")
 
-    @log_decorator
+    @async_log_decorator
     async def __aenter__(self):
         """Enters the async context, establishing the connection."""
         if not self._initialized:
@@ -924,12 +924,12 @@ class ConnectAPI(IConnectAPI):
             )
         return self
 
-    @log_decorator
+    @async_log_decorator
     async def __aexit__(self, exc_type: Exception = None, exc_val: Any = None, exc_tb: Traceback = None):
         """
         Exits the async context, disconnecting from the server.
 
-        Parameters:
+        Args:
             exc_type (Exception): The exception type, if any.
             exc_val (Any): The exception value, if any.
             exc_tb (Traceback): The traceback, if any.
@@ -948,7 +948,7 @@ class ConnectAPI(IConnectAPI):
             log.error(f"Failed to disconnect: {e}")
             raise MilvusAPIError(f"Disconnection failed: {e}")
 
-    @log_decorator
+    @async_log_decorator
     def __await__(self):
         """Makes the class awaitable for async contexts.
 
@@ -997,7 +997,7 @@ class CollectionAPI(ICollectionAPI):
         self._connect_api = connect_api
 
     # Private helper function
-    @log_decorator
+    @async_log_decorator
     async def _build_collection_schema(self,
                                  collection_name: str,
                                  fields: List[FieldSchema],
@@ -1067,7 +1067,7 @@ class CollectionAPI(ICollectionAPI):
         log.info(f"Created collection schema for {collection_name}, schema: {collection_schema}")
         return collection_schema
 
-    @log_decorator
+    @async_log_decorator
     async def create_collection(self,
                                 collection_name: str,
                                 fields: List[FieldSchema],
@@ -1169,7 +1169,7 @@ class CollectionAPI(ICollectionAPI):
             log.error(f"Failed to create collection: {e}")
             raise MilvusAPIError(f"Collection creation failed: {e}")
 
-    @log_decorator
+    @async_log_decorator
     async def list_collections(self, database_name: str = "default") -> List[str]:
         """Lists all collections in the specified database.
 
@@ -1190,7 +1190,7 @@ class CollectionAPI(ICollectionAPI):
             log.error(f"Failed to list collections: {e}")
             raise MilvusAPIError(f"List collections failed: {e}")
 
-    @log_decorator
+    @async_log_decorator
     async def describe_collection(self, collection_name: str, database_name: str = "default") -> Dict[str, Any]:
         """Describes the specified collection.
 
@@ -1215,7 +1215,7 @@ class CollectionAPI(ICollectionAPI):
             log.error(f"Failed to describe collection: {e}")
             raise MilvusAPIError(f"Describe collection failed: {e}")
 
-    @log_decorator
+    @async_log_decorator
     async def drop_collection(self, collection_name: str, timeout: float = 10) -> Dict[str, str]:
         """Drops the specified collection.
 
@@ -1269,7 +1269,7 @@ class VectorAPI(IVectorAPI):
         """Initializes VectorAPI with a connection instance."""
         self._connect_api = connect_api
 
-    @log_decorator
+    @async_log_decorator
     async def insert(self, collection_name: str, entities: List[Dict[str, Any]], partition_name: Optional[str] = None,
                      database_name: str = "default") -> Dict:
         """Inserts entities into a collection.
@@ -1311,7 +1311,7 @@ class VectorAPI(IVectorAPI):
             log.error(f"Failed to insert entities: {e}")
             raise MilvusAPIError(f"Insert failed: {e}")
 
-    @log_decorator
+    @async_log_decorator
     async def delete(self, collection_name: str, expr: str, partition_name: Optional[str] = None,
                      database_name: str = "default"):
         """Deletes entities from a collection based on an expression.
@@ -1372,7 +1372,7 @@ class SearchAPI(ISearchAPI):
         """Initializes SearchAPI with a connection instance."""
         self._connect_api = connect_api
 
-    @log_decorator
+    @async_log_decorator
     async def search(self,
                      collection_name: str, data: List[List[float]],
                      anns_field: str, param: Dict[str, Any],
@@ -1444,7 +1444,7 @@ class SearchAPI(ISearchAPI):
             log.error(f"Failed to search: {e}")
             raise MilvusAPIError(f"Search failed: {e}")
 
-    @log_decorator
+    @async_log_decorator
     async def _rerank_results(self, results: List[Dict]) -> List[Dict]:
         """Reranks search results by distance.
 
@@ -1485,7 +1485,7 @@ class IndexAPI(IIndexAPI):
         """Initializes IndexAPI with a connection instance."""
         self._connect_api = connect_api
 
-    @log_decorator
+    @async_log_decorator
     async def create_index(self, collection_name: str, field_name: str, index_params: Dict,
                            database_name: str = "default", **kwargs):
         """Creates an index on a field in a collection.
@@ -1515,7 +1515,7 @@ class IndexAPI(IIndexAPI):
             log.error(f"Failed to create index: {e}")
             raise MilvusAPIError(f"Index creation failed: {e}")
 
-    @log_decorator
+    @async_log_decorator
     async def drop_index(self, collection_name: str, field_name: str, database_name: str = "default"):
         """Drops an index from a field in a collection.
 
@@ -1572,7 +1572,7 @@ class PartitionAPI(IPartitionAPI):
         """
         self._connect_api = connect_api
 
-    @log_decorator
+    @async_log_decorator
     async def create_partition(self, collection_name: str, partition_name: str, database_name: str = "default"):
         """Creates a partition in a collection.
 
@@ -1597,7 +1597,7 @@ class PartitionAPI(IPartitionAPI):
             log.error(f"Failed to create partition: {e}")
             raise MilvusAPIError(f"Partition creation failed: {e}")
 
-    @log_decorator
+    @async_log_decorator
     async def drop_partition(self, collection_name: str, partition_name: str, database_name: str = "default"):
         """Drops a partition from a collection.
 
@@ -1654,7 +1654,7 @@ class StatAPI(IStatAPI):
         """
         self._connect_api = connect_api
 
-    @log_decorator
+    @async_log_decorator
     async def get_collection_stats(self, collection_name: str, database_name: str = "default") -> Dict[str, Any]:
         """Gets statistics for a collection.
 
@@ -1711,7 +1711,7 @@ class MonitorAPI(IMonitorAPI):
         """
         self._connect_api = connect_api
 
-    @log_decorator
+    @async_log_decorator
     async def get_monitor_info(self) -> Dict[str, Any]:
         """Gets monitoring information for the Milvus server.
 
@@ -1782,7 +1782,7 @@ class EmbeddingAPI(IEmbeddingAPI):
         """
         self._connect_api = connect_api
 
-    @log_decorator
+    @async_log_decorator
     async def generate_embeddings(self, data: List[Any], embedding_model: Callable[[List[Any]], np.ndarray],
                                   embedding_type: str = "float", batch_size: int = 32) -> np.ndarray:
         """Generates embeddings for the provided data.
@@ -1856,7 +1856,7 @@ class AdminAPI(IAdminAPI):
         """
         self._connect_api = connect_api
 
-    @log_decorator
+    @async_log_decorator
     async def create_user(self, username: str, password: str):
         """Creates a new user in Milvus.
 
@@ -1877,7 +1877,7 @@ class AdminAPI(IAdminAPI):
             log.error(f"Failed to create user: {e}")
             raise MilvusAPIError(f"User creation failed: {e}")
 
-    @log_decorator
+    @async_log_decorator
     async def list_users(self) -> List[str]:
         """Lists all users in Milvus.
 
@@ -1927,7 +1927,7 @@ class DataImportAPI(IDataImportAPI):
         """
         self._connect_api = connect_api
 
-    @log_decorator
+    @async_log_decorator
     async def import_data(self, collection_name: str, file_path: str, database_name: str = "default"):
         """Imports data into a collection from a file.
 
@@ -2028,7 +2028,7 @@ class MilvusAPI:
         self._data_import_api = DataImportAPI(self._connect_api)
         log.info("MilvusAPI initialized...")
 
-    @log_decorator
+    @async_log_decorator
     async def create_collection(self, collection_name: str, fields: List[FieldSchema], database_name: str = "default",
                                 dimension: int | None = None, primary_field_name: str = "id", id_type: str = "int",
                                 vector_field_name: str = "vector", metric_type: str = "COSINE", auto_id: bool = False,
@@ -2077,7 +2077,7 @@ class MilvusAPI:
             log.error(f"Failed to create collection: {e}")
             raise MilvusAPIError(f"Collection creation failed: {e}")
 
-    @log_decorator
+    @async_log_decorator
     async def drop_collection(self, collection_name: str, timeout: float = 10) -> Dict[str, str]:
         """Drops a collection.
 
@@ -2091,7 +2091,7 @@ class MilvusAPI:
         """
         return await self._collection_api.drop_collection(collection_name, timeout=timeout)
 
-    @log_decorator
+    @async_log_decorator
     async def insert(self, collection_name: str, entities: List[Dict[str, Any]], partition_name: Optional[str] = None,
                      database_name: str = "default") -> Dict:
         """Inserts entities into a collection.
@@ -2108,9 +2108,9 @@ class MilvusAPI:
         """
         return await self._vector_api.insert(collection_name, entities, partition_name, database_name)
 
-    @log_decorator
+    @async_log_decorator
     async def delete(self, collection_name: str, expr: str, partition_name: Optional[str] = None,
-                     database_name: str = "default"):
+                     database_name: str = "default") -> None:
         """Deletes entities from a collection.
 
         Args:
@@ -2121,7 +2121,7 @@ class MilvusAPI:
         """
         await self._vector_api.delete(collection_name, expr, partition_name, database_name)
 
-    @log_decorator
+    @async_log_decorator
     async def search(self, collection_name: str, data: List[List[float]], anns_field: str, search_params: Dict[str, Any],
                      limit: int, expr: Optional[str] = None, output_fields: Optional[List[str]] = None,
                      partition_names: Optional[List[str]] = None, database_name: str = "default",
@@ -2145,13 +2145,22 @@ class MilvusAPI:
             List[Dict]: Search results.
         """
         return await self._search_api.search(
-            collection_name, data, anns_field, search_params, limit, expr, output_fields,
-            partition_names, database_name, rerank, **kwargs
-        )
+            collection_name,
+            data,
+            anns_field,
+            search_params,
+            limit,
+            expr,
+            output_fields,
+            partition_names,
+            database_name,
+            rerank,
+            **kwargs)
 
-    @log_decorator
-    async def create_index(self, collection_name: str, field_name: str, index_params: Dict,
-                           database_name: str = "default", **kwargs):
+    @async_log_decorator
+    async def create_index(self,
+                           collection_name: str, field_name: str,
+                           index_params: Dict, database_name: str = "default", **kwargs) -> None:
         """Creates an index on a field.
 
         Args:
@@ -2164,8 +2173,8 @@ class MilvusAPI:
         """
         await self._index_api.create_index(collection_name, field_name, index_params, database_name, **kwargs)
 
-    @log_decorator
-    async def drop_index(self, collection_name: str, field_name: str, database_name: str = "default"):
+    @async_log_decorator
+    async def drop_index(self, collection_name: str, field_name: str, database_name: str = "default") -> None:
         """Drops an index from a field.
 
         Args:
@@ -2175,8 +2184,8 @@ class MilvusAPI:
         """
         await self._index_api.drop_index(collection_name, field_name, database_name)
 
-    @log_decorator
-    async def create_partition(self, collection_name: str, partition_name: str, database_name: str = "default"):
+    @async_log_decorator
+    async def create_partition(self, collection_name: str, partition_name: str, database_name: str = "default") -> None:
         """Creates a partition in a collection.
 
         Args:
@@ -2186,8 +2195,8 @@ class MilvusAPI:
         """
         await self._partition_api.create_partition(collection_name, partition_name, database_name)
 
-    @log_decorator
-    async def drop_partition(self, collection_name: str, partition_name: str, database_name: str = "default"):
+    @async_log_decorator
+    async def drop_partition(self, collection_name: str, partition_name: str, database_name: str = "default") -> None:
         """Drops a partition from a collection.
         Args:
             collection_name (str): Name of the collection.
@@ -2196,7 +2205,7 @@ class MilvusAPI:
         """
         await self._partition_api.drop_partition(collection_name, partition_name, database_name)
 
-    @log_decorator
+    @async_log_decorator
     async def get_collection_stats(self, collection_name: str, database_name: str = "default") -> Dict[str, Any]:
         """Gets collection statistics.
 
@@ -2209,29 +2218,65 @@ class MilvusAPI:
         """
         return await self._stat_api.get_collection_stats(collection_name, database_name)
 
-    @log_decorator
+    @async_log_decorator
     async def get_monitor_info(self) -> Dict[str, Any]:
-        """Gets server monitoring information."""
+        """
+        Gets server monitoring information.
+
+        Returns:
+            Dict[str, Any]: Monitoring metrics.
+
+        """
         return await self._monitor_api.get_monitor_info()
 
-    @log_decorator
+    @async_log_decorator
     async def generate_embeddings(self, data: List[Any], embedding_model: Callable[[List[Any]], np.ndarray],
                                   embedding_type: str = "float", batch_size: int = 32) -> np.ndarray:
-        """Generates embeddings for data."""
+        """
+        Generates embeddings for data.
+
+        Args:
+            data (List[Any]): Data to embed.
+            embedding_model (Callable[[List[Any]], np.ndarray]): Model to generate embeddings.
+            embedding_type (str): Type of embeddings. Defaults to "float".
+            batch_size (int): Number of items per batch. Defaults to 32.
+
+        Returns:
+            np.ndarray: Generated embeddings.
+        """
         return await self._embedding_api.generate_embeddings(data, embedding_model, embedding_type, batch_size)
 
-    @log_decorator
-    async def create_user(self, username: str, password: str):
-        """Creates a new user."""
+    @async_log_decorator
+    async def create_user(self, username: str, password: str) -> None:
+        """
+        Creates a new user.
+
+        Args:
+            username (str): Username for the new user.
+            password (str): Password for the new user.
+        """
         await self._admin_api.create_user(username, password)
 
-    @log_decorator
+    @async_log_decorator
     async def list_users(self) -> List[str]:
-        """Lists all users."""
+        """
+        Lists all users.
+
+        Returns:
+            List[str]: List of usernames.
+        """
         return await self._admin_api.list_users()
 
-    @log_decorator
-    async def import_data(self, collection_name: str, file_path: str, database_name: str = "default"):
-        """Imports data into a collection."""
+    @async_log_decorator
+    async def import_data(self, collection_name: str, file_path: str, database_name: str = "default") -> None:
+        """
+        Imports data into a collection.
+
+        Args:
+            collection_name (str): Name of the collection.
+            file_path (str): Path to the data file.
+            database_name (str): Database name. Defaults to "default".
+
+        """
         await self._data_import_api.import_data(collection_name, file_path, database_name)
 
