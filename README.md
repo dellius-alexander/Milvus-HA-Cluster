@@ -439,3 +439,47 @@ classDiagram
     Interpreter ..|> Observer
     Memento ..|> Observer
 ```
+
+---
+
+```mermaid
+graph TD
+  subgraph Networks
+    network1["Network: default"]
+    network2["Network: custom_network"]
+  end
+
+  subgraph Services
+    service1["Service: etcd"]
+    service2["Service: milvus_proxy"]
+    service3["Service: milvus_indexnode"]
+    service4["Service: milvus_querynode"]
+    service5["Service: milvus_datanode"]
+    service6["Service: milvus_rootcoord"]
+    service7["Service: milvus_etcd"]
+    service8["Service: milvus_minio"]
+    service9["Service: milvus_pulsar"]
+  end
+
+  %% Service to Network Connections
+  service1 --- network1
+  service2 --- network1
+  service3 --- network1
+  service4 --- network1
+  service5 --- network1
+  service6 --- network1
+  service7 --- network1
+  service8 --- network2
+  service9 --- network2
+
+  %% Service Interactions
+  service2 -->|API Requests| service6
+  service3 -->|Indexing| service6
+  service4 -->|Query Execution| service6
+  service5 -->|Data Storage| service6
+  service6 -->|Metadata| service7
+  service6 -->|Object Storage| service8
+  service6 -->|Message Queue| service9
+```
+
+

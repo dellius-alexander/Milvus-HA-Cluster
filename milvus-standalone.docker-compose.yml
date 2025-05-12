@@ -45,7 +45,7 @@ services:
       - "9000:9000"
     volumes:
       - minio_data:/minio_data
-    command: minio server /minio_data --console-address ":9001"
+    command: server /minio_data --console-address ":9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
@@ -89,7 +89,7 @@ services:
     # Use a custom Dockerfile for Prometheus to ensure optimized configuration
     build:
       context: .
-      dockerfile: .devcontainer/prometheus.Dockerfile
+      dockerfile: .devcontainer/services/prometheus/prometheus.Dockerfile
     # Container name for easy identification
     container_name: milvus_prometheus
     hostname: prometheus
@@ -142,3 +142,5 @@ services:
     depends_on:
         standalone:
             condition: service_healthy
+
+  ####################################################################

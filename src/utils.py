@@ -55,7 +55,7 @@ class ConfigManager:
     """
     config: Dict[str, Any] = None
 
-    def __init__(self, config_file: str = "config.json"):
+    def __init__(self, config_file: str or dict = "config.json"):
         """Initialize with a config file path.
 
         Args:
@@ -98,6 +98,9 @@ class ConfigManager:
             "encryption_key": base64.urlsafe_b64encode(os.urandom(32))
         }
         log.info(f"Default config: {json.dumps(defaults, indent=2, default=str)}")
+        if isinstance(config_file, dict):
+            # config_file = json.dumps(config_file)
+            return config_file
         if os.path.exists(config_file):
             with open(config_file, 'r') as f:
                 config = json.load(f)

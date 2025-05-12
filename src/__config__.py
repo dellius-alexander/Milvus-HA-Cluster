@@ -4,12 +4,25 @@
 # --------------------------------------------------------------
 import os
 import time
+import dotenv
+import logging
+
+log = logging.getLogger(__name__)
+# --------------------------------------------------------------
+# Load environment variables from .env file
+# --------------------------------------------------------------
+try:
+    env = dotenv.find_dotenv(filename=".env", raise_error_if_not_found=True, usecwd=False)
+    dotenv.load_dotenv(env, override=True)
+except Exception as e:
+    log.error(f"Error loading .env file: {e}")
+    exit(".env file not found or error loading it.")
 
 # --------------------------------------------------------------
 # Define project environment
 # --------------------------------------------------------------
-LOG_DIR = os.path.join("/tmp/log/", "TicTacToe")
-LOG_FILE = f'{LOG_DIR}/TicTacToe_{time.strftime("%Y%m%d%H%M%S")}.log'
+LOG_DIR = os.path.join("/tmp/log", "milvus")
+LOG_FILE = f'{LOG_DIR}/milvus_{time.strftime("%Y%m%d%H%M%S")}.log'
 
 # --------------------------------------------------------------
 # Define log colors
@@ -66,3 +79,9 @@ log_config = {
         "level": "DEBUG",
     },
 }
+
+# if __name__ == "__main__":
+#     # Test the configuration
+#     print("Loaded Environment Variables:")
+#     for key, value in os.environ.items():
+#         print(f"{key}: {value}")

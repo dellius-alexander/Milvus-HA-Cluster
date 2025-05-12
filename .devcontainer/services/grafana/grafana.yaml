@@ -1,0 +1,50 @@
+#####################################################################
+services:
+  ####################################################################
+  # Grafana service for visualization
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: grafana
+    hostname: grafana
+    environment:
+      # Admin user for Grafana web interface
+      GF_SECURITY_ADMIN_USER: admin
+      # Admin password for Grafana (replace with a strong, unique password in production)
+      GF_SECURITY_ADMIN_PASSWORD: "WW91ckdyYWZhbmFTdHJvbmdQYXNzd29yZDEyMw"
+      # Log level for Grafana (info for production, debug for troubleshooting)
+      GF_LOG_LEVEL: info
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - external-network
+
+####################################################################
+# Define networks for service communication
+networks:
+  external-network:
+    name: external-network
+    driver: bridge
+    ipam:
+      driver: default
+
+####################################################################
+# Define persistent volumes for data durability
+volumes:
+  grafana_data:
+    name: grafana_data

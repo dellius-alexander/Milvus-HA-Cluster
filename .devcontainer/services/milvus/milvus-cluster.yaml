@@ -1,0 +1,201 @@
+#####################################################################
+# Variables for the Docker Compose file
+x-variables:
+  # Configuration for deployment
+  milvus_common: &milvus_common
+    build:
+      context: .
+      dockerfile: milvus.Dockerfile
+#    image: milvusdb/milvus:v2.5.9
+    environment:
+      ETCD_ENDPOINTS: haproxy:2379
+      MINIO_ADDRESS: haproxy:9000
+      MINIO_ACCESS_KEY_ID: "minioadmin"
+      MINIO_SECRET_ACCESS_KEY: "WW91ckdyYWZhbmFTdHJvbmdQYXNzd29yZDEyMw"
+      PULSAR_ADDRESS: pulsar://pulsar:6650
+      ROOT_COORD_ADDRESS: rootcoord:53100
+      QUERY_COORD_ADDRESS: querycoord:19531
+      INDEX_COORD_ADDRESS: indexcoord:31000
+      DATA_COORD_ADDRESS: datacoord:13333
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - milvus
+
+#####################################################################
+services:
+  ####################################################################
+  # Milvus cluster services
+  rootcoord:
+    <<: *milvus_common
+    container_name: milvus-rootcoord
+    command: ["milvus", "run", "rootcoord"]
+    depends_on:
+      - "etcd0"
+      - "pulsar"
+      - "haproxy"
+
+  proxy:
+    <<: *milvus_common
+    container_name: milvus-proxy
+    command: ["milvus", "run", "proxy"]
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9091/healthz" ]
+      interval: 30s
+      start_period: 90s
+      timeout: 20s
+      retries: 3
+
+  querycoord:
+    <<: *milvus_common
+    container_name: milvus-querycoord
+    command: ["milvus", "run", "querycoord"]
+    depends_on:
+      - "etcd0"
+      - "pulsar"
+      - "haproxy"
+
+  querynode-1:
+    <<: *milvus_common
+    container_name: milvus-querynode-1
+    command: ["milvus", "run", "querynode"]
+    depends_on:
+      - "querycoord"
+
+  querynode-2:
+    <<: *milvus_common
+    container_name: milvus-querynode-2
+    command: ["milvus", "run", "querynode"]
+    depends_on:
+      - "querycoord"
+
+  querynode-3:
+    <<: *milvus_common
+    container_name: milvus-querynode-3
+    command: ["milvus", "run", "querynode"]
+    depends_on:
+      - "querycoord"
+
+  indexcoord:
+    <<: *milvus_common
+    container_name: milvus-indexcoord
+    command: ["milvus", "run", "indexcoord"]
+    depends_on:
+      - "etcd0"
+      - "pulsar"
+      - "haproxy"
+
+  indexnode-1:
+    <<: *milvus_common
+    container_name: milvus-indexnode-1
+    command: ["milvus", "run", "indexnode"]
+    depends_on:
+      - "indexcoord"
+
+  indexnode-2:
+    <<: *milvus_common
+    container_name: milvus-indexnode-2
+    command: ["milvus", "run", "indexnode"]
+    depends_on:
+      - "indexcoord"
+
+  indexnode-3:
+    <<: *milvus_common
+    container_name: milvus-indexnode-3
+    command: [ "milvus", "run", "indexnode" ]
+    depends_on:
+      - "indexcoord"
+
+  datacoord:
+    <<: *milvus_common
+    container_name: milvus-datacoord
+    command: ["milvus", "run", "datacoord"]
+    depends_on:
+      - "etcd0"
+      - "pulsar"
+      - "haproxy"
+
+  datanode-1:
+    <<: *milvus_common
+    container_name: milvus-datanode-1
+    command: ["milvus", "run", "datanode"]
+    depends_on:
+      - "datacoord"
+
+  datanode-2:
+    <<: *milvus_common
+    container_name: milvus-datanode-2
+    command: ["milvus", "run", "datanode"]
+    depends_on:
+      - "datacoord"
+
+  datanode-3:
+    <<: *milvus_common
+    container_name: milvus-datanode-3
+    command: ["milvus", "run", "datanode"]
+    depends_on:
+      - "datacoord"
+
+  ####################################################################
+  # Node exporter for host metrics
+  node_exporter:
+    image: prom/node-exporter:v1.8.0
+    container_name: node_exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: always
+    networks:
+      - milvus
+
+  ####################################################################
+  # Milvus GUI service
+  milvus-gui:
+    image: zilliz/attu:latest
+    container_name: milvus-gui
+    environment:
+      MILVUS_URL: http://proxy:19530
+    ports:
+      - "3300:3000"
+    depends_on:
+      proxy:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - milvus
+      - external-network
+
+####################################################################
+# Define networks for service communication
+networks:
+  milvus:
+    name: milvus
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  external-network:
+    name: external-network
+    driver: bridge
+    ipam:
+      driver: default

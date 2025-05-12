@@ -2,14 +2,10 @@
 # -*- coding: utf-8 -*-
 # File: src.interfaces.py
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional, Callable, Annotated
+from typing import List, Dict, Any, Optional, Callable, Annotated, Union
 import numpy as np
-from pymilvus import AsyncMilvusClient, MilvusClient, Collection, FieldSchema, \
-    DataType, CollectionSchema
-from src.exceptions import MilvusAPIError, MilvusValidationError
+from pymilvus import AsyncMilvusClient, MilvusClient, Collection, FieldSchema
 from src.logger import getLogger as GetLogger
-from src.utils import SecurityManager
-
 
 # Logging setup
 log = GetLogger(__name__)
@@ -44,7 +40,7 @@ class IConnectAPI(ABC):
                 await self.client.close()
         ```
     """
-    client: Annotated[AsyncMilvusClient | MilvusClient,
+    async_client: Annotated[Union[AsyncMilvusClient, MilvusClient],
         "An instance of AsyncMilvusClient or MilvusClient for server interaction."
     ]
 
@@ -931,3 +927,56 @@ class ICollectionObserver(ABC):
             NotImplementedError: If the method is not implemented by a subclass.
         """
         raise NotImplementedError("The 'update' method must be implemented by subclasses to handle collection updates.")
+
+
+class IConnectionManager(ABC):
+    """
+    Interface for managing connections to the Milvus server.
+
+    Provides methods for establishing and closing connections.
+
+    Methods:
+        connect: Establishes a connection to the Milvus server.
+        close: Closes the connection to the Milvus server.
+
+    Raises:
+        NotImplementedError: If the method is not implemented by a subclass.
+
+    Example:
+        ```python
+        class ConcreteConnectionManager(IConnectionManager):
+            async def connect(self, alias, user, password, host, port, timeout):
+                # Connection logic
+                pass
+        ```
+    """
+    @abstractmethod
+    async def connect(self, alias: str, user: str, password: str, host: str, port: str, timeout: int):
+        """
+        Establishes a connection to the Milvus server.
+
+        Parameters:
+            alias (str): Alias for the connection.
+            user (str): Username for authentication.
+            password (str): Password for authentication.
+            host (str): Milvus server host address.
+            port (str): Milvus server port.
+            timeout (int): Connection timeout in seconds.
+
+        Raises:
+            NotImplementedError: If the method is not implemented by a subclass.
+        """
+        raise NotImplementedError("The 'connect' method must be implemented by subclasses to establish a connection.")
+
+    @abstractmethod
+    async def close(self):
+        """
+        Closes the connection to the Milvus server.
+
+        Raises:
+            NotImplementedError: If the method is not implemented by a subclass.
+        """
+        raise NotImplementedError("The 'close' method must be implemented by subclasses to close the connection.")
+
+
+

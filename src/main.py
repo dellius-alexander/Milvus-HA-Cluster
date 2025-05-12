@@ -1,6 +1,5 @@
 import asyncio
-from pymilvus import FieldSchema, DataType, Collection, CollectionSchema, \
-    utility
+from pymilvus import FieldSchema, DataType
 
 from src.milvus import ConnectAPI, MilvusAPI
 from src.logger import getLogger as GetLogger
@@ -9,19 +8,20 @@ from src.logger import getLogger as GetLogger
 log = GetLogger(__name__)
 
 
-# Example usage
-if __name__ == "__main__":
-    async def main():
-        try:
-            connect_api = ConnectAPI(
+async def main():
+    try:
+        async with ConnectAPI(
                 alias="test_db",
                 user="root",
                 password="Milvus",
                 host="10.1.0.99",
                 port="19530",
-                timeout=10,
-                **{"db_name": "test_db"}
-            )
+                timeout=10
+        ) as connect_api:
+            log.info(f"Connecting to Milvus with alias: {connect_api._alias}")
+            log.info(f"Connection parameters: {connect_api.__dict__}")
+            log.info(f"Connecting to Milvus at {connect_api._host}:{connect_api._port}")
+            log.info("Connected to Milvus successfully.")
             log.info(f"ConnectAPI: \n {connect_api}")
             api = MilvusAPI(connect_api)
             log.info(f"MilvusAPI: \n {api}")
@@ -56,6 +56,32 @@ if __name__ == "__main__":
             )
             log.info(f"Search results: {results}")
             await api.drop_collection("test_collection")
-        except Exception as e:
-            log.error(f"An error occurred: {e}")
+    except Exception as e:
+        log.error(f"An error occurred: {e}"
+                  f"\n{e.__traceback__}")
+        await connect_api.close()
+
+
+# Example usage
+if __name__ == "__main__":
+
     asyncio.run(main())
+
+    # async with AsyncMilvusClientWrapper(
+    #     uri=os.environ.get("MILVUS_URI"),
+    #     user=os.environ.get("MILVUS_USER"),
+    #     password=os.environ.get("MILVUS_PASSWD"),
+    #     db_name=os.environ.get("MILVUS_DB"),
+    #     host=os.environ.get("MILVUS_HOST"),
+    #     port=int(os.environ.get("MILVUS_PORT")),
+    #     token=os.environ.get("MILVUS_TOKEN"),
+    #     timeout=os.environ.get("MILVUS_TIMEOUT")) as client:
+    #     log.info("Connected to Milvus")
+    #     # Example usage of the API
+    #     await client.create_collection("test_collection", [
+    #         FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=True),
+    #         FieldSchema(name="vector", dtype=DataType.FLOAT_VECTOR, dim=128)
+    #     ])
+    #     log.info(await client.has_collection("test_collection"))
+    #     await client
+

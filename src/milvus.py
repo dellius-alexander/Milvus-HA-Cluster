@@ -56,22 +56,28 @@ asyncio.run(main())
 
 ```
 """
-
 import asyncio
+import base64
+import os
+from dataclasses import dataclass
 from inspect import Traceback
 from typing import List, Dict, Any, Optional, Callable, Coroutine, Annotated, Union
+
+import dotenv
 import numpy as np
+from pygments.lexer import using
 from pymilvus import (
     FieldSchema, Collection, DataType, MilvusException, utility,
     CollectionSchema, AsyncMilvusClient, MilvusClient,
 )
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import datetime
-
+import traceback
+import sys
 from src.exceptions import MilvusAPIError, MilvusValidationError
 from src.interfaces import IConnectAPI, ICollectionAPI, IVectorAPI, ISearchAPI, IIndexAPI, IPartitionAPI, IStatAPI, \
     IEmbeddingAPI, IMonitorAPI, IAdminAPI, IDataImportAPI, IStrategy, ICommand, IOperation, IState
-from src.utils import async_log_decorator, SecurityManager
+from src.utils import async_log_decorator, SecurityManager, ConfigManager
 from src.logger import getLogger as GetLogger
 
 
@@ -738,6 +744,7 @@ class Memento:
 
 
 # Implementation Classes
+@dataclass
 class ConnectAPI(IConnectAPI):
     """
     Manages connections to the Milvus server using asynchronous operations.
@@ -755,7 +762,7 @@ class ConnectAPI(IConnectAPI):
         _host (str): Milvus server hostname.
         _port (str): Milvus server port.
         _kwargs (Dict): Additional connection parameters.
-        client (AsyncMilvusClient | MilvusClient): The Milvus client instance.
+        async_client (AsyncMilvusClient | MilvusClient): The Milvus client instance.
 
     Methods:
         connect: Establishes a connection to the Milvus server.
@@ -776,6 +783,7 @@ class ConnectAPI(IConnectAPI):
         MilvusValidationError: If connection parameters are invalid.
     """
     _instance = None
+    _creation_timestamp = None
     _alias = None
     _timeout = None
 
@@ -792,7 +800,10 @@ class ConnectAPI(IConnectAPI):
         """
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            log.info("New ConnectAPI instance created.")
+            cls._creation_timestamp = datetime.datetime.now()
+            log.info(f"New ConnectAPI instance created @ {cls._creation_timestamp}")
+        else:
+            log.info(f"Using existing ConnectAPI instance created @ {cls._creation_timestamp}")
         return cls._instance
 
     def __init__(self, alias: str = "default", user: str = "milvus", password: str = "developer",
@@ -821,8 +832,12 @@ class ConnectAPI(IConnectAPI):
             log.warning("ConnectAPI instance already exists. Using existing parameters.")
 
     @async_log_decorator
-    async def connect(self, alias: str = "default", user: str = "milvus", password: str = "developer",
-                      host: str = "127.0.0.1", port: str = "19530", timeout: int = 30, **kwargs):
+    async def connect(self, alias: str = "default",
+                      user: str = "milvus",
+                      password: str = "developer",
+                      host: str = "127.0.0.1",
+                      port: str = "19530",
+                      timeout: int = 30, **kwargs):
         """Establishes a connection to the Milvus server.
 
         Args:
@@ -880,16 +895,21 @@ class ConnectAPI(IConnectAPI):
                 password=password,
                 host=host,
                 port=port,
-                # _async=True,
+                _async=True,
                 **kwargs
             )
-            # Then create the client from the connection
-            self.client =  AsyncMilvusClient(
+
+            # Create an async Milvus client
+            self.async_client =  AsyncMilvusClient(
                 uri=f"tcp://{host}:{port}",
                 token=f"{user}:{password}",
+                # db_name=alias,
                 **kwargs
             )
-            log.debug(f"Connected to Milvus at {host}:{port}, using: {self.client._using}")
+
+            # Create the database
+            # await self.client.create_database(alias, properties={"database.replia.number": 1})
+            log.debug(f"Connected to Milvus at {host}:{port}, using: {self.async_client._using}")
         except MilvusException as e:
             log.error(f"Failed to connect: {e}")
             raise MilvusAPIError(f"Connection failed: {e}")
@@ -902,8 +922,8 @@ class ConnectAPI(IConnectAPI):
             MilvusAPIError: If disconnection fails.
         """
         try:
-            if self.client is not None:
-                await self.client.close()
+            if self.async_client is not None:
+                await self.async_client.close()
                 log.info(f"Disconnected from Milvus, alias: {self._alias}")
         except MilvusException as e:
             log.error(f"Failed to disconnect: {e}")
@@ -939,7 +959,11 @@ class ConnectAPI(IConnectAPI):
         """
         try:
             if exc_type is not None:
-                log.error(f"\nException type: {exc_type}, \nvalue: {exc_val}, \ntraceback: {exc_tb}")
+                # Extract and format the traceback
+                extracted_frames = traceback.extract_tb(exc_tb)
+                formatted_traceback = "".join(traceback.format_list(extracted_frames))
+                log.error(f"\nException type: {exc_type}, \nvalue: {exc_val}")
+                log.error(f"Traceback: {formatted_traceback}")
             if self._initialized:
                 await self.disconnect()
                 self._initialized = False
@@ -1001,7 +1025,7 @@ class CollectionAPI(ICollectionAPI):
     async def _build_collection_schema(self,
                                  collection_name: str,
                                  fields: List[FieldSchema],
-                                 dimension: int | None,
+                                 dimension: Union[int, None],
                                  primary_field_name: str,
                                  id_type: str,
                                  vector_field_name: str,
@@ -1072,15 +1096,15 @@ class CollectionAPI(ICollectionAPI):
                                 collection_name: str,
                                 fields: List[FieldSchema],
                                 database_name: str = "default",
-                                dimension: int | None = None,
+                                dimension: Union[int, None] = None,
                                 primary_field_name: str = "id",
                                 id_type: str = "int",
                                 vector_field_name: str = "vector",
                                 metric_type: str = "COSINE",
                                 auto_id: bool = False,
-                                timeout: float | None = None,
-                                schema: CollectionSchema | None = None,
-                                index_params: Dict | None = None,
+                                timeout: Union[float, None] = None,
+                                schema: Union[CollectionSchema, None] = None,
+                                index_params: Union[Dict, None] = None,
                                 **kwargs) -> Collection:
         """Creates a new collection in the specified database.
 
@@ -1131,7 +1155,7 @@ class CollectionAPI(ICollectionAPI):
             create_kwargs.update(kwargs)
 
             # Create the collection
-            await self._connect_api.client.create_collection(
+            await self._connect_api.async_client.create_collection(
                 collection_name=collection_name,
                 dimension=dimension,
                 schema=collection_schema,
@@ -1143,7 +1167,8 @@ class CollectionAPI(ICollectionAPI):
             collection = Collection(
                 name=collection_name,
                 schema=collection_schema,
-                using=self._connect_api._alias
+                using=database_name,
+                **{"collection.ttl.seconds": 1800}
             )
 
             # Create index if specified
@@ -1183,7 +1208,7 @@ class CollectionAPI(ICollectionAPI):
             MilvusAPIError: If listing fails.
         """
         try:
-            collections = await self._connect_api.client.list_collections(db_name=database_name)
+            collections = await self._connect_api.async_client.list_collections(db_name=database_name)
             log.info(f"Listed {len(collections)} collections in database {database_name}")
             return collections
         except MilvusException as e:
@@ -1205,7 +1230,7 @@ class CollectionAPI(ICollectionAPI):
             MilvusAPIError: If description fails.
         """
         try:
-            desc = await self._connect_api.client.describe_collection(
+            desc = await self._connect_api.async_client.describe_collection(
                 collection_name=collection_name,
                 db_name=database_name
             )
@@ -1230,7 +1255,7 @@ class CollectionAPI(ICollectionAPI):
             MilvusAPIError: If dropping fails.
         """
         try:
-            await self._connect_api.client.drop_collection(
+            await self._connect_api.async_client.drop_collection(
                 collection_name=collection_name,
                 timeout= timeout
             )
@@ -1297,7 +1322,7 @@ class VectorAPI(IVectorAPI):
                 using=self._connect_api._alias
             )
             # MR: MilvusResultS
-            mr: dict = await self._connect_api.client.insert(
+            mr: dict = await self._connect_api.async_client.insert(
                 collection_name=collection_name,
                 data=entities,
                 partition_name=partition_name,
@@ -1331,7 +1356,7 @@ class VectorAPI(IVectorAPI):
         if not expr or not isinstance(expr, str):
             raise MilvusValidationError("Expression must be a non-empty string")
         try:
-            await self._connect_api.client.delete(
+            await self._connect_api.async_client.delete(
                 collection_name=collection_name,
                 expr=expr,
                 partition_name=partition_name,
@@ -1413,7 +1438,7 @@ class SearchAPI(ISearchAPI):
             collection = Collection(collection_name, using=self._connect_api._alias, db_name=database_name)
             collection.load()
             # Search the database
-            results = await self._connect_api.client.search(
+            results = await self._connect_api.async_client.search(
                 collection_name=collection_name,
                 data=data,
                 anns_field=anns_field,
@@ -1431,7 +1456,7 @@ class SearchAPI(ISearchAPI):
                       f"\nAttributes of results: {dir(results)}, "
                       f"\nType of results: {type(results)}, "
                       f"\nLength of results: {len(results)}, "
-                      f"\nContains distance: {"distance" in str(results)}")
+                      f"\nContains distance: {'distance' in str(results)}")
 
             # Check if reranking is needed
             if rerank and "distance" in str(results):
@@ -1723,8 +1748,8 @@ class MonitorAPI(IMonitorAPI):
         """
         try:
             server_version = await utility.get_server_version()
-            connection_status = self._connect_api.client is not None
-            collections = await self._connect_api.client.list_collections()
+            connection_status = self._connect_api.async_client is not None
+            collections = await self._connect_api.async_client.list_collections()
             collection_stats = {}
             for col_name in collections:
                 try:
@@ -1871,7 +1896,7 @@ class AdminAPI(IAdminAPI):
         if not username or not isinstance(username, str) or not password or not isinstance(password, str):
             raise MilvusValidationError("Username and password must be non-empty strings")
         try:
-            await self._connect_api.client.create_user(username, password)
+            await self._connect_api.async_client.create_user(username, password)
             log.info(f"Created user {username}")
         except MilvusException as e:
             log.error(f"Failed to create user: {e}")
@@ -1888,7 +1913,7 @@ class AdminAPI(IAdminAPI):
             MilvusAPIError: If listing fails.
         """
         try:
-            users = await self._connect_api.client.list_users()
+            users = await self._connect_api.async_client.list_users()
             log.info(f"Listed {len(users)} users")
             return users
         except MilvusException as e:
@@ -1943,7 +1968,7 @@ class DataImportAPI(IDataImportAPI):
         if not collection_name or not isinstance(collection_name, str) or not file_path or not isinstance(file_path, str):
             raise MilvusValidationError("Collection name and file path must be non-empty strings")
         try:
-            await self._connect_api.client.import_data(
+            await self._connect_api.async_client.import_data(
                 collection_name=collection_name,
                 file_path=file_path,
                 db_name=database_name
@@ -2029,11 +2054,18 @@ class MilvusAPI:
         log.info("MilvusAPI initialized...")
 
     @async_log_decorator
-    async def create_collection(self, collection_name: str, fields: List[FieldSchema], database_name: str = "default",
-                                dimension: int | None = None, primary_field_name: str = "id", id_type: str = "int",
-                                vector_field_name: str = "vector", metric_type: str = "COSINE", auto_id: bool = False,
-                                timeout: float | None = None, schema: CollectionSchema | None = None,
-                                index_params: Dict | None = None, **kwargs) -> Collection:
+    async def create_collection(self, collection_name: str,
+                                fields: List[FieldSchema],
+                                database_name: str = "default",
+                                dimension: Union[int, None] = None,
+                                primary_field_name: str = "id",
+                                id_type: str = "int",
+                                vector_field_name: str = "vector",
+                                metric_type: str = "COSINE",
+                                auto_id: bool = False,
+                                timeout: Union[float, None] = None,
+                                schema: Union[CollectionSchema, None] = None,
+                                index_params: Union[Dict, None] = None, **kwargs) -> Collection:
         """Creates a new collection.
 
         Args:
@@ -2279,4 +2311,156 @@ class MilvusAPI:
 
         """
         await self._data_import_api.import_data(collection_name, file_path, database_name)
+
+
+class AsyncMilvusClientWrapper(utility.connections):
+    """
+    A wrapper for AsyncMilvusClient to provide additional functionality.
+
+    Args:
+        uri (str): Milvus server URI. Defaults to "http://localhost:19530".
+        user (str): Username for authentication. Defaults to an empty string.
+        password (str): Password for authentication. Defaults to an empty string.
+        db_name (str): Database name. Defaults to an empty string.
+        token (str): Token for authentication. Defaults to an empty string.
+        timeout (Optional[float]): Timeout for requests. Defaults to None.
+        **kwargs (Any): Additional arguments for the client.
+    """
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        """
+        Ensures a singleton instance of ConnectAPI.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            ConnectAPI: The singleton instance.
+        """
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            log.info("New ConnectAPI instance created.")
+        return cls._instance
+
+    def __init__(self,
+                 uri: str = "http://localhost:19530",
+                 user: str = "",
+                 password: str = "",
+                 db_name: str = "",
+                 host: str = "localhost",
+                 port: int = 19530,
+                 token: str = "",
+                 timeout: Optional[float] = None,
+                 **kwargs: Any) -> None:
+        if not hasattr(self, '_initialized') or not self._initialized:
+            super().__init__(self, uri=uri,
+                             user=user,
+                             password=password,
+                             db_name=db_name,
+                             token=token,
+                             timeout=timeout,
+                             **kwargs)
+            self._uri = uri
+            self._alias = kwargs.get("alias", "default")
+            self._user = user
+            self._password = password
+            self._host = host
+            self._port = port
+            self._timeout = timeout
+            self._db_name = db_name
+            self._token = token
+            self._config_manager = ConfigManager({
+                "host": self._host,
+                "port": self._port,
+                "user": self._user,
+                "password": self._password,
+                "timeout": self._timeout,
+                "db_name": self._db_name,
+                "token": self._token,
+                "encryption_key": os.environ.get("MILVUS_ENCRYPT_KEY"),
+            })
+            self._security_manager = SecurityManager(self._config_manager)
+            self._initialized = True
+            log.info(f"AsyncMilvusClientWrapper initialized with URI: {self._uri}")
+        else:
+            log.warning("AsyncMilvusClientWrapper instance already exists. Using existing parameters.")
+
+    @async_log_decorator
+    async def has_collection(self, collection_name: str,
+                             using: str = "default",
+                             timeout: Optional[float] = None) -> bool:
+        """
+        Check if a collection exists.
+
+        Args:
+            collection_name (str): Name of the collection.
+            using (str): The alias of the connection to use. Defaults to "default".
+            timeout (Optional[float]): Timeout for the operation. Defaults to None.
+
+        Returns:
+            bool: True if the collection exists, False otherwise.
+        """
+        return await utility.has_collection(collection_name=collection_name, using=using, timeout=timeout)
+
+    async def __aenter__(self):
+        """
+        Enter the runtime context related to this object.
+
+        Returns:
+            self: The instance of AsyncMilvusClientWrapper.
+        """
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """
+        Exit the runtime context related to this object.
+
+        Args:
+            exc_type (type): The exception type.
+            exc_val (Exception): The exception value.
+            exc_tb (traceback): The traceback object.
+
+        Raises:
+            MilvusAPIError: If disconnection fails.
+        """
+        try:
+            if exc_type is not None:
+                # Extract and format the traceback
+                extracted_frames = traceback.extract_tb(exc_tb)
+                formatted_traceback = "".join(traceback.format_list(extracted_frames))
+                log.error(f"\nException type: {exc_type}, \nvalue: {exc_val}")
+                log.error(f"Traceback: {formatted_traceback}")
+            if self._initialized:
+                await self.close()
+                self._initialized = False
+                log.info("Disconnected from Milvus server.")
+        except MilvusException as e:
+            log.error(f"Failed to disconnect: {e}")
+            raise MilvusAPIError(f"Disconnection failed: {e}")
+
+    def __dict__(self):
+        return {
+            "uri": self._uri,
+            "alias": self._alias,
+            "user": self._user,
+            "password": self._password,
+            "host": self._host,
+            "port": self._port,
+            "timeout": self._timeout,
+            "db_name": self._db_name,
+            "token": self._token,
+            "config_manager": self._config_manager,
+            "security_manager": self._security_manager,
+            "initialized": self._initialized
+        }
+
+    def __repr__(self):
+        return f"AsyncMilvusClientWrapper({self.__dict__()})"
+
+    def __str__(self):
+        """String representation of the AsyncMilvusClientWrapper."""
+        return f"AsyncMilvusClientWrapper({self.__dict__()})"
+
 

@@ -5,19 +5,18 @@ FROM minio/minio:RELEASE.2025-04-08T15-41-24Z
 LABEL maintainer="Dellius Alexander <admin@hyfisolutions.com>"
 LABEL description="Custom MinIO image for Milvus high-availability setup"
 
-# Install curl for health checks
+## Install curl for health checks
 #RUN microdnf install curl && microdnf clean all
 
 # Set MinIO data directory
 VOLUME /data
 
 # Expose MinIO ports
-EXPOSE 9000
-EXPOSE 9001
+EXPOSE 9000 9001
 
 # Run MinIO with server command
 ENTRYPOINT ["/usr/bin/minio"]
-CMD ["server", "/minio_data", "--console-address", ":9001"]
+#CMD ["server", "/data", "--console-address", ":9001"]
 
 # Purpose:
 # - Uses a recent MinIO release for scalable, S3-compatible storage.

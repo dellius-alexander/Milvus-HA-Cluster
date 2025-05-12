@@ -1,0 +1,158 @@
+{
+  "id": null,
+  "uid": "milvus-observability",
+  "title": "Milvus Cluster Observability",
+  "tags": [
+    "milvus",
+    "monitoring"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 37,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
+    {
+      "title": "Service Availability",
+      "type": "graph",
+      "id": 1,
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "up{job=~\"$job\"}",
+          "legendFormat": "{{instance}}",
+          "interval": "",
+          "refId": "A"
+        }
+      ],
+      "yaxes": [
+        {
+          "format": "short",
+          "label": "Up",
+          "logBase": 1,
+          "max": 1,
+          "min": 0,
+          "show": true
+        },
+        {
+          "show": false
+        }
+      ],
+      "lines": true,
+      "linewidth": 1,
+      "fill": 1,
+      "points": true,
+      "aliasColors": {},
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "title": "Milvus Proxy gRPC Latency",
+      "type": "graph",
+      "id": 2,
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(grpc_server_handling_seconds_sum{job=~\"milvus\", instance=~\".*proxy.*\"}[1m]) / rate(grpc_server_handling_seconds_count{job=~\"milvus\", instance=~\".*proxy.*\"}[1m])",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "yaxes": [
+        {
+          "format": "s",
+          "label": "Seconds",
+          "logBase": 1,
+          "show": true
+        },
+        {
+          "show": false
+        }
+      ],
+      "lines": true,
+      "fill": 1,
+      "points": false,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      }
+    },
+    {
+      "title": "MinIO Object Count",
+      "type": "stat",
+      "id": 3,
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "minio_cluster_bucket_objects{job=\"minio\"}",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      }
+    },
+    {
+      "title": "ETCD Leader Changes",
+      "type": "graph",
+      "id": 4,
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(etcd_server_leader_changes_seen_total{job=\"etcd\"}[1m])",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "yaxes": [
+        {
+          "format": "short",
+          "label": "Changes/min",
+          "logBase": 1,
+          "show": true
+        },
+        {
+          "show": false
+        }
+      ],
+      "lines": true,
+      "fill": 1,
+      "points": true,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "job",
+        "type": "query",
+        "datasource": "Prometheus",
+        "refresh": 1,
+        "query": "label_values(up, job)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "label": "Service Job",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ".*"
+        }
+      }
+    ]
+  }
+}

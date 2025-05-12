@@ -1,0 +1,66 @@
+#####################################################################
+services:
+  ####################################################################
+  # HAProxy service for load balancing
+  haproxy:
+    build:
+      context: .
+      dockerfile: haproxy.Dockerfile
+    container_name: haproxy
+    hostname: haproxy
+    command: ["haproxy", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
+#    image: haproxy:latest
+    ports:
+      - "2379:2379"
+      - "9000:9000"
+      - "9001:9001"
+      - "8404:8404"
+    volumes:
+      - haproxy_data:/usr/local/etc/haproxy
+    depends_on:
+      - minio0
+      - minio1
+      - minio2
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "haproxy -v" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - milvus
+      - etcd-network
+      - minio-network
+
+####################################################################
+# Define networks for service communication
+networks:
+  milvus:
+    name: milvus
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  minio-network:
+    name: minio-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  etcd-network:
+    name: etcd-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+
+####################################################################
+# Define persistent volumes for data durability
+volumes:
+  haproxy_data:
+    name: haproxy_data

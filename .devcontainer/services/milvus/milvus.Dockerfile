@@ -9,22 +9,20 @@ LABEL description="Custom Milvus standalone image for high-availability setup"
 RUN apt-get update && apt-get install -y curl && apt-get clean
 
 # Set working directory
-WORKDIR /var/lib/milvus
+WORKDIR /milvus
 
-# Copy custom configuration (optional, adjust as needed)
-COPY .devcontainer/cfg/milvus.yaml /milvus/configs/milvus.yaml
+# Copy custom configuration
+COPY cfg/milvus-cluster.yaml /milvus/configs/milvus.yaml
 
 # Expose Milvus ports
-#EXPOSE 19530
-#EXPOSE 9091
+#EXPOSE 19530 9091
 
-# Run Milvus standalone
-ENTRYPOINT ["/milvus/bin/milvus"]
-#CMD ["run", "standalone"]
+# Run Milvus
+#ENTRYPOINT ["/milvus/bin/milvus"]
 
 # Purpose:
-# - Uses Milvus v2.4.12, a stable release for production.
+# - Uses Milvus v2.5.9, a stable release for production.
 # - Installs curl for health checks to monitor service status.
 # - Supports persistent volumes for data and logs to ensure durability.
 # - Exposes gRPC (19530) and RESTful API (9091) ports for client access.
-# - Allows custom configuration via milvus.yaml (commented out for default).
+# - Allows custom configuration via milvus.yaml.
