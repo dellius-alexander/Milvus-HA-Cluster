@@ -15,18 +15,23 @@ services:
       - "9000:9000"
       - "9001:9001"
       - "8404:8404"
+      - "8080:8080"
+      - "6650:6650"
     volumes:
       - haproxy_data:/usr/local/etc/haproxy
     depends_on:
-      - minio0
-      - minio1
-      - minio2
+      minio0:
+        condition: service_healthy
+      etcd0:
+        condition: service_healthy
+      broker:
+        condition: service_healthy
     healthcheck:
       test: [ "CMD", "sh", "-c", "haproxy -v" ]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 60s
     deploy:
       mode: replicated
       replicas: 1
@@ -36,6 +41,8 @@ services:
       - milvus
       - etcd-network
       - minio-network
+      - pulsar-network
+      - external-network
 
 ####################################################################
 # Define networks for service communication
@@ -55,6 +62,17 @@ networks:
   etcd-network:
     name: etcd-network
     internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  pulsar-network:
+    name: pulsar-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  external-network:
+    name: external-network
     driver: bridge
     ipam:
       driver: default

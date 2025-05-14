@@ -1,0 +1,384 @@
+####################################################################
+# Define networks for service communication
+networks:
+  pulsar:
+    name: pulsar
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+####################################################################
+# Define persistent volumes for data durability
+volumes:
+#  pulsar_data:
+#    name: pulsar_data
+  zookeeper_data1:
+    name: zookeeper_data1
+  zookeeper_data2:
+    name: zookeeper_data2
+  zookeeper_data3:
+    name: zookeeper_data3
+  bookkeeper_data1:
+    name: bookkeeper_data1
+  bookkeeper_data2:
+    name: bookkeeper_data2
+  bookkeeper_data3:
+    name: bookkeeper_data3
+#####################################################################
+# VARIABLES:
+x-variables:
+  pulsar_common_vars: &pulsar_common_vars
+    build:
+      context: .
+      dockerfile: pulsar.Dockerfile
+#####################################################################
+services:
+  ####################################################################
+  # ZooKeeper Ensemble (3 nodes)
+  zookeeper1:
+    build:
+      context: .
+      dockerfile: zookeeper.Dockerfile
+      args:
+        SERVERID: 1
+#    image: apachepulsar/pulsar:latest
+    container_name: zookeeper1
+    hostname: zookeeper1
+    restart: on-failure
+    mem_limit: 2248m  # Reserve 512MB (256MB heap + overhead)
+    networks:
+      - pulsar
+    volumes:
+      - zookeeper_data1:/pulsar/data/zookeeper
+#      - ./zookeeper.conf:/pulsar/conf/zookeeper.conf
+    environment:
+      - SERVERID=1
+    expose:
+      - "2181"  # Client port
+      - "2888"  # Server-to-server (leader-follower)
+      - "3888"  # Server-to-server (leader election)
+    healthcheck:
+      test: ["CMD", "bin/pulsar-zookeeper-ruok.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  zookeeper2:
+    build:
+      context: .
+      dockerfile: zookeeper.Dockerfile
+      args:
+        SERVERID: 2
+#    image: apachepulsar/pulsar:latest
+    container_name: zookeeper2
+    hostname: zookeeper2
+    restart: on-failure
+    mem_limit: 2248m  # Reserve 512MB (256MB heap + overhead)
+    networks:
+      - pulsar
+    volumes:
+      - zookeeper_data2:/pulsar/data/zookeeper
+#      - ./zookeeper.conf:/pulsar/conf/zookeeper.conf
+    environment:
+      - SERVERID=2
+    expose:
+      - "2181"  # Client port
+      - "2888"  # Server-to-server (leader-follower)
+      - "3888"  # Server-to-server (leader election)
+    healthcheck:
+      test: ["CMD", "bin/pulsar-zookeeper-ruok.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  zookeeper3:
+    build:
+      context: .
+      dockerfile: zookeeper.Dockerfile
+      args:
+        SERVERID: 3
+#    image: apachepulsar/pulsar:latest
+    container_name: zookeeper3
+    hostname: zookeeper3
+    restart: on-failure
+    mem_limit: 2248m  # Reserve 2248MB (256MB heap + overhead)
+    networks:
+      - pulsar
+    volumes:
+      - zookeeper_data3:/pulsar/data/zookeeper
+#      - ./zookeeper.conf:/pulsar/conf/zookeeper.conf
+    environment:
+      - SERVERID=3
+    expose:
+      - "2181"  # Client port
+      - "2888"  # Server-to-server (leader-follower)
+      - "3888"  # Server-to-server (leader election)
+    healthcheck:
+      test: ["CMD", "bin/pulsar-zookeeper-ruok.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  # Initialize Cluster Metadata
+  pulsar-init:
+    image: apachepulsar/pulsar:4.0.4
+    container_name: pulsar-init
+    hostname: pulsar-init
+    mem_limit: 2248m  # Reserve 2248MB
+    networks:
+      - pulsar
+    command: ["bash", "-c", "/pulsar/bin/pulsar initialize-cluster-metadata \
+              --cluster=cluster-a \
+              --zookeeper=zookeeper1:2181,zookeeper2:2181,zookeeper3:2181 \
+              --configuration-store=zookeeper1:2181,zookeeper2:2181,zookeeper3:2181 \
+              --web-service-url=http://pulsar-proxy:8080 \
+              --broker-service-url=pulsar://pulsar-proxy:6650"]
+    depends_on:
+      zookeeper1:
+        condition: service_healthy
+      zookeeper2:
+        condition: service_healthy
+      zookeeper3:
+        condition: service_healthy
+
+  # Bookies (3 nodes)
+  bookie1:
+    build:
+      context: .
+      dockerfile: bookie.Dockerfile
+#    image: apachepulsar/pulsar:latest
+    container_name: bookie1
+    hostname: bookie1
+    restart: on-failure
+    mem_limit: 2248m  # Reserve 1GB (512MB heap + overhead)
+    networks:
+      - pulsar
+    environment:
+      - ADVERTISED_ADDRESS=bookie1
+    expose:
+      - "3181"  # Bookie server port
+    depends_on:
+      zookeeper1:
+        condition: service_healthy
+      zookeeper2:
+        condition: service_healthy
+      zookeeper3:
+        condition: service_healthy
+      pulsar-init:
+        condition: service_completed_successfully
+    volumes:
+      - bookkeeper_data1:/pulsar/data/bookkeeper
+
+  bookie2:
+    build:
+      context: .
+      dockerfile: bookie.Dockerfile
+#    image: apachepulsar/pulsar:latest
+    container_name: bookie2
+    hostname: bookie2
+    restart: on-failure
+    mem_limit: 2248m  # Reserve 1GB (512MB heap + overhead)
+    networks:
+      - pulsar
+    environment:
+      - ADVERTISED_ADDRESS=bookie2
+    expose:
+      - "3181"  # Bookie server port
+    depends_on:
+      zookeeper1:
+        condition: service_healthy
+      zookeeper2:
+        condition: service_healthy
+      zookeeper3:
+        condition: service_healthy
+      pulsar-init:
+        condition: service_completed_successfully
+    volumes:
+      - bookkeeper_data2:/pulsar/data/bookkeeper
+
+  bookie3:
+    build:
+      context: .
+      dockerfile: bookie.Dockerfile
+#    image: apachepulsar/pulsar:latest
+    container_name: bookie3
+    hostname: bookie3
+    restart: on-failure
+    mem_limit: 2248m  # Reserve 1GB (512MB heap + overhead)
+    networks:
+      - pulsar
+    environment:
+      - ADVERTISED_ADDRESS=bookie3
+    expose:
+      - "3181"  # Bookie server port
+    depends_on:
+      zookeeper1:
+        condition: service_healthy
+      zookeeper2:
+        condition: service_healthy
+      zookeeper3:
+        condition: service_healthy
+      pulsar-init:
+        condition: service_completed_successfully
+    volumes:
+      - bookkeeper_data3:/pulsar/data/bookkeeper
+
+  # Brokers (3 nodes)
+  broker1:
+    build:
+      context: .
+      dockerfile: broker.Dockerfile
+#    image: apachepulsar/pulsar:latest
+    container_name: broker1
+    hostname: broker1
+    restart: on-failure
+    mem_limit: 2304m  # Reserve 1GB (512MB heap + overhead)
+    networks:
+      - pulsar
+    environment:
+      - ADVERTISED_ADDRESS=broker1
+    expose:
+      - "6650"  # Pulsar binary protocol
+      - "8080"  # HTTP admin API
+    depends_on:
+      zookeeper1:
+        condition: service_healthy
+      zookeeper2:
+        condition: service_healthy
+      zookeeper3:
+        condition: service_healthy
+      bookie1:
+        condition: service_started
+      bookie2:
+        condition: service_started
+      bookie3:
+        condition: service_started
+    command: >
+      bash -c "bin/apply-config-from-env.py conf/broker.conf && exec bin/pulsar broker"
+
+  broker2:
+    build:
+      context: .
+      dockerfile: broker.Dockerfile
+#    image: apachepulsar/pulsar:latest
+    container_name: broker2
+    hostname: broker2
+    restart: on-failure
+    mem_limit: 2304m  # Reserve 1GB (512MB heap + overhead)
+    networks:
+      - pulsar
+    environment:
+      - ADVERTISED_ADDRESS=broker2
+    expose:
+      - "6650"  # Pulsar binary protocol
+      - "8080"  # HTTP admin API
+    depends_on:
+      zookeeper1:
+        condition: service_healthy
+      zookeeper2:
+        condition: service_healthy
+      zookeeper3:
+        condition: service_healthy
+      bookie1:
+        condition: service_started
+      bookie2:
+        condition: service_started
+      bookie3:
+        condition: service_started
+    command: >
+      bash -c "bin/apply-config-from-env.py conf/broker.conf && exec bin/pulsar broker"
+
+  broker3:
+    build:
+      context: .
+      dockerfile: broker.Dockerfile
+#    image: apachepulsar/pulsar:latest
+    container_name: broker3
+    hostname: broker3
+    restart: on-failure
+    mem_limit: 2304m  # Reserve 1GB (512MB heap + overhead)
+    networks:
+      - pulsar
+    environment:
+      - ADVERTISED_ADDRESS=broker3
+    expose:
+      - "6650"  # Pulsar binary protocol
+      - "8080"  # HTTP admin API
+    depends_on:
+      zookeeper1:
+        condition: service_healthy
+      zookeeper2:
+        condition: service_healthy
+      zookeeper3:
+        condition: service_healthy
+      bookie1:
+        condition: service_started
+      bookie2:
+        condition: service_started
+      bookie3:
+        condition: service_started
+    command: >
+      bash -c "bin/apply-config-from-env.py conf/broker.conf && exec bin/pulsar broker"
+
+  # HAProxy Load Balancer
+  pulsar-proxy:
+    build:
+      context: .
+      dockerfile: haproxy.Dockerfile
+#    image: haproxy:latest
+    container_name: pulsar-proxy
+    hostname: pulsar-proxy
+    restart: on-failure
+    networks:
+      - pulsar
+    ports:
+      - "6650:6650"
+      - "8080:8080"
+    depends_on:
+      broker1:
+        condition: service_started
+      broker2:
+        condition: service_started
+      broker3:
+        condition: service_started
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://broker1:8080/admin/v2/brokers/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+##########################################################################
+#  # Standalone Pulsar Service
+#  pulsar:
+#    container_name: milvus-pulsar
+#    image: apachepulsar/pulsar:4.0.4
+#    volumes:
+#      - pulsar_data:/pulsar/data
+#    environment:
+#      # bin/apply-config-from-env.py script will modify the configuration file based on the environment variables
+#      # nettyMaxFrameSizeBytes must be calculated from maxMessageSize + 10240 (padding)
+#      - nettyMaxFrameSizeBytes=104867840 # this is 104857600 + 10240 (padding)
+#      - defaultRetentionTimeInMinutes=10080
+#      - defaultRetentionSizeInMB=8192
+#      # maxMessageSize is missing from standalone.conf, must use PULSAR_PREFIX_ to get it configured
+#      - PULSAR_PREFIX_maxMessageSize=104857600
+#      - PULSAR_GC=-XX:+UseG1GC
+#    restart: always
+#    healthcheck:
+#      test: [ "CMD", "bin/pulsar-admin", "brokers", "healthcheck" ]
+#      start_period: 60s
+#      interval: 30s
+#      timeout: 20s
+#      retries: 5
+#    command: |
+#      /bin/bash -c \
+#      "bin/apply-config-from-env.py conf/standalone.conf && \
+#      exec bin/pulsar standalone --no-functions-worker --no-stream-storage"
+#    networks:
+#      - pulsar-network
+##########################################################################

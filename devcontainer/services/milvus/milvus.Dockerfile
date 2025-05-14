@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y curl && apt-get clean
 WORKDIR /milvus
 
 # Copy custom configuration
-COPY cfg/milvus-cluster.yaml /milvus/configs/milvus.yaml
+COPY cfg/milvus.yaml /milvus/configs/milvus.yaml
 
 # Expose Milvus ports
 #EXPOSE 19530 9091

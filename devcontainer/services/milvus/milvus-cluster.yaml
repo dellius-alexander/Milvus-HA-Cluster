@@ -7,16 +7,6 @@ x-variables:
       context: .
       dockerfile: milvus.Dockerfile
 #    image: milvusdb/milvus:v2.5.9
-    environment:
-      ETCD_ENDPOINTS: haproxy:2379
-      MINIO_ADDRESS: haproxy:9000
-      MINIO_ACCESS_KEY_ID: "minioadmin"
-      MINIO_SECRET_ACCESS_KEY: "WW91ckdyYWZhbmFTdHJvbmdQYXNzd29yZDEyMw"
-      PULSAR_ADDRESS: pulsar://pulsar:6650
-      ROOT_COORD_ADDRESS: rootcoord:53100
-      QUERY_COORD_ADDRESS: querycoord:19531
-      INDEX_COORD_ADDRESS: indexcoord:31000
-      DATA_COORD_ADDRESS: datacoord:13333
     deploy:
       resources:
         limits:
@@ -32,6 +22,17 @@ x-variables:
     networks:
       - milvus
 
+  milvus_environment_vars: &milvus_environment_vars
+    ETCD_ENDPOINTS: haproxy:2379
+    MINIO_ADDRESS: haproxy:9000
+    MINIO_ACCESS_KEY_ID: "minioadmin"
+    MINIO_SECRET_ACCESS_KEY: "WW91ckdyYWZhbmFTdHJvbmdQYXNzd29yZDEyMw"
+    PULSAR_ADDRESS: haproxy:6650
+#    ROOT_COORD_ADDRESS: rootcoord:53100
+#    QUERY_COORD_ADDRESS: querycoord:19531
+#    INDEX_COORD_ADDRESS: indexcoord:31000
+#    DATA_COORD_ADDRESS: datacoord:13333
+
 #####################################################################
 services:
   ####################################################################
@@ -40,18 +41,38 @@ services:
     <<: *milvus_common
     container_name: milvus-rootcoord
     command: ["milvus", "run", "rootcoord"]
+    environment:
+      <<: *milvus_environment_vars
+      ROOT_COORD_ADDRESS: rootcoord:53100
     depends_on:
-      - "etcd0"
-      - "pulsar"
-      - "haproxy"
+      etcd0:
+        condition: service_healthy
+      minio0:
+        condition: service_healthy
+      broker:
+        condition: service_healthy
+      haproxy:
+        condition: service_healthy
 
   proxy:
     <<: *milvus_common
     container_name: milvus-proxy
     command: ["milvus", "run", "proxy"]
+    environment:
+      <<: *milvus_environment_vars
+      ROOT_COORD_ADDRESS: rootcoord:53100
     ports:
       - "19530:19530"
       - "9091:9091"
+    depends_on:
+      etcd0:
+        condition: service_healthy
+      minio0:
+        condition: service_healthy
+      broker:
+        condition: service_healthy
+      haproxy:
+        condition: service_healthy
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:9091/healthz" ]
       interval: 30s
@@ -63,15 +84,20 @@ services:
     <<: *milvus_common
     container_name: milvus-querycoord
     command: ["milvus", "run", "querycoord"]
+    environment:
+      <<: *milvus_environment_vars
+      QUERY_COORD_ADDRESS: querycoord:19531
     depends_on:
-      - "etcd0"
-      - "pulsar"
-      - "haproxy"
+      haproxy:
+        condition: service_healthy
 
   querynode-1:
     <<: *milvus_common
     container_name: milvus-querynode-1
     command: ["milvus", "run", "querynode"]
+    environment:
+      <<: *milvus_environment_vars
+      QUERY_COORD_ADDRESS: querycoord:19531
     depends_on:
       - "querycoord"
 
@@ -79,6 +105,9 @@ services:
     <<: *milvus_common
     container_name: milvus-querynode-2
     command: ["milvus", "run", "querynode"]
+    environment:
+      <<: *milvus_environment_vars
+      QUERY_COORD_ADDRESS: querycoord:19531
     depends_on:
       - "querycoord"
 
@@ -86,6 +115,9 @@ services:
     <<: *milvus_common
     container_name: milvus-querynode-3
     command: ["milvus", "run", "querynode"]
+    environment:
+      <<: *milvus_environment_vars
+      QUERY_COORD_ADDRESS: querycoord:19531
     depends_on:
       - "querycoord"
 
@@ -93,15 +125,20 @@ services:
     <<: *milvus_common
     container_name: milvus-indexcoord
     command: ["milvus", "run", "indexcoord"]
+    environment:
+      <<: *milvus_environment_vars
+      INDEX_COORD_ADDRESS: indexcoord:31000
     depends_on:
-      - "etcd0"
-      - "pulsar"
-      - "haproxy"
+      haproxy:
+        condition: service_healthy
 
   indexnode-1:
     <<: *milvus_common
     container_name: milvus-indexnode-1
     command: ["milvus", "run", "indexnode"]
+    environment:
+      <<: *milvus_environment_vars
+      INDEX_COORD_ADDRESS: indexcoord:31000
     depends_on:
       - "indexcoord"
 
@@ -109,6 +146,9 @@ services:
     <<: *milvus_common
     container_name: milvus-indexnode-2
     command: ["milvus", "run", "indexnode"]
+    environment:
+      <<: *milvus_environment_vars
+      INDEX_COORD_ADDRESS: indexcoord:31000
     depends_on:
       - "indexcoord"
 
@@ -116,6 +156,9 @@ services:
     <<: *milvus_common
     container_name: milvus-indexnode-3
     command: [ "milvus", "run", "indexnode" ]
+    environment:
+      <<: *milvus_environment_vars
+      INDEX_COORD_ADDRESS: indexcoord:31000
     depends_on:
       - "indexcoord"
 
@@ -123,15 +166,20 @@ services:
     <<: *milvus_common
     container_name: milvus-datacoord
     command: ["milvus", "run", "datacoord"]
+    environment:
+      <<: *milvus_environment_vars
+      DATA_COORD_ADDRESS: datacoord:13333
     depends_on:
-      - "etcd0"
-      - "pulsar"
-      - "haproxy"
+      haproxy:
+        condition: service_healthy
 
   datanode-1:
     <<: *milvus_common
     container_name: milvus-datanode-1
     command: ["milvus", "run", "datanode"]
+    environment:
+      <<: *milvus_environment_vars
+      DATA_COORD_ADDRESS: datacoord:13333
     depends_on:
       - "datacoord"
 
@@ -139,6 +187,9 @@ services:
     <<: *milvus_common
     container_name: milvus-datanode-2
     command: ["milvus", "run", "datanode"]
+    environment:
+      <<: *milvus_environment_vars
+      DATA_COORD_ADDRESS: datacoord:13333
     depends_on:
       - "datacoord"
 
@@ -146,6 +197,9 @@ services:
     <<: *milvus_common
     container_name: milvus-datanode-3
     command: ["milvus", "run", "datanode"]
+    environment:
+      <<: *milvus_environment_vars
+      DATA_COORD_ADDRESS: datacoord:13333
     depends_on:
       - "datacoord"
 

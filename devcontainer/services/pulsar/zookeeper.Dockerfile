@@ -1,23 +1,39 @@
 FROM apachepulsar/pulsar:4.0.4
+ARG SERVERID=""
 
 # Metadata for the image
 LABEL maintainer="Dellius Alexander admin@hyfisolutions.com"
 LABEL description="Custom Pulsar image for Milvus high-availability setup"
 
-## Install necessary tools for health checks and debugging
-#RUN apt-get update && \
-#    apt-get install -y curl && \
-#    apt-get clean
+# Save user and change to root
+RUN OLDUSER=$(id -u)
+USER root
+
+# Copy all config files
+COPY cfg/zookeeper.conf /pulsar/conf/zookeeper.conf
+
+# Set permissions
+RUN mkdir -p "/pulsar/data/zookeeper/version-2" && \
+    chown -R ${OLDUSER}:${OLDUSER} /pulsar/data/zookeeper && \
+    chown -R ${OLDUSER}:${OLDUSER} /pulsar/conf/zookeeper.conf
+
+
+# Copy entrypoint scropt
+COPY scripts/zookeeper.sh  /pulsar/entrypoint.sh
+
+# Set as executable
+RUN chmod +x /pulsar/entrypoint.sh
 
 # Set the working directory
 WORKDIR /pulsar
 
 # Expose Pulsar ports
-EXPOSE 6650
-EXPOSE 8080
+EXPOSE 2181 2888 3888
 
+USER ${OLDUSER}
 # Run Pulsar standalone with custom configuration
-ENTRYPOINT ["/bin/bash", "-c", "bin/apply-config-from-env.py conf/standalone.conf && exec bin/pulsar standalone --no-functions-worker --no-stream-storage"]
+ENTRYPOINT ["/pulsar/entrypoint.sh"]
+
 
 # Purpose:
 # - Uses Apache Pulsar 4.0.4 for a reliable messaging system.

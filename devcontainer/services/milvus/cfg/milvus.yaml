@@ -184,7 +184,7 @@ pulsar:
   # pulsar.address and pulsar.port together generate the valid access to Pulsar.
   # Pulsar preferentially acquires the valid IP address from the environment variable PULSAR_ADDRESS when Milvus is started.
   # Default value applies when Pulsar is running on the same network with Milvus.
-  address: pulsar://pulsar
+  address: haproxy
   port: 6650 # Port of Pulsar service.
   webport: 80 # Web port of of Pulsar service. If you connect direcly without proxy, should use 8080.
   # The maximum size of each message in Pulsar. Unit: Byte.
@@ -319,7 +319,7 @@ proxy:
     port:  # high-level restful api
     acceptTypeAllowInt64: true # high-level restful api, whether http client can deal with int64
     enablePprof: true # Whether to enable pprof middleware on the metrics port
-  ip: milvus-proxy # TCP/IP address of proxy. If not specified, use the first unicastable address
+  ip:  # TCP/IP address of proxy. If not specified, use the first unicastable address
   port: 19530 # TCP port of proxy
   internalPort: 19529
   grpc:
@@ -385,7 +385,7 @@ queryCoord:
   checkExecutedFlagInterval: 100 # the interval of check executed flag to force to pull dist
   updateCollectionLoadStatusInterval: 5 # 5m, max interval of updating collection loaded status for check health
   cleanExcludeSegmentInterval: 60 # the time duration of clean pipeline exclude segment which used for filter invalid data, in seconds
-  ip:  # TCP/IP address of queryCoord. If not specified, use the first unicastable address
+  ip: # TCP/IP address of queryCoord. If not specified, use the first unicastable address
   port: 19531 # TCP port of queryCoord
   grpc:
     serverMaxSendSize: 536870912 # The maximum size of each RPC request that the queryCoord can send, unit: byte
@@ -501,7 +501,7 @@ queryNode:
 indexCoord:
   bindIndexNodeMode:
     enable: false
-    address: localhost:22930
+    address: localhost:31000
     withCred: false
     nodeID: 0
   segment:
