@@ -14,7 +14,7 @@
   - **ZooKeeper**: Configure a 3-node ensemble with optimized memory settings, tick time, and snapshot policies for reliability and performance.
   - **BookKeeper**: Set up bookies with proper journal and ledger directories, optimized write/read caches, and fault-tolerant replication settings.
   - **Brokers**: Configure brokers to use HAProxy as the advertised address, enable load balancing, and tune performance parameters like message batching and managed ledger settings.
-  - **Consistency**: Align configurations with the `docker-compose.yml` (e.g., cluster name `cluster-a`, ZooKeeper quorum `zookeeper1:2181,zookeeper2:2181,zookeeper3:2181`, HAProxy endpoints `haproxy:6650` and `haproxy:8080`).
+  - **Consistency**: Align configurations with the `docker-compose.yml` (e.g., cluster name `cluster-a`, ZooKeeper quorum `zookeeper1:2181,zookeeper2:2181,zookeeper3:2181`, HAProxy endpoints `pulsar-proxy:6650` and `pulsar-proxy:8080`).
   - **Performance**: Use conservative memory settings for testing but include comments for production tuning.
   - **Persistence**: Leverage the mounted volumes (`./data/zookeeper{1,2,3}`, `./data/bookkeeper{1,2,3}`) for data durability.
 - **Implementation**: Each service (ZooKeeper, BookKeeper, broker) will have a tailored configuration file mounted via Docker Compose volumes. The `docker-compose.yml` will be updated to mount these files and remove redundant environment variables where possible.
@@ -114,8 +114,8 @@ Below, I’ll provide the configuration files (`zookeeper.conf`, `bookkeeper.con
    brokerServicePort=6650
    webServicePort=8080
    advertisedAddress=${ADVERTISED_ADDRESS}
-   brokerServiceUrl=pulsar://haproxy:6650
-   webServiceUrl=http://haproxy:8080
+   brokerServiceUrl=pulsar://pulsar-proxy:6650
+   webServiceUrl=http://pulsar-proxy:8080
    managedLedgerDefaultEnsembleSize=2
    managedLedgerDefaultWriteQuorum=2
    managedLedgerDefaultAckQuorum=2
@@ -144,7 +144,7 @@ Below, I’ll provide the configuration files (`zookeeper.conf`, `bookkeeper.con
    - `clusterName=cluster-a`: Matches the `pulsar-init` configuration.
    - `brokerServicePort=6650`, `webServicePort=8080`: Default Pulsar ports.
    - `advertisedAddress=${ADVERTISED_ADDRESS}`: Set to `broker1`, `broker2`, or `broker3` via environment variables.
-   - `brokerServiceUrl`, `webServiceUrl`: Points to HAProxy (`haproxy:6650`, `haproxy:8080`) for client connections.
+   - `brokerServiceUrl`, `webServiceUrl`: Points to HAProxy (`pulsar-proxy:6650`, `pulsar-proxy:8080`) for client connections.
    - `managedLedgerDefaultEnsembleSize=2`, `managedLedgerDefaultWriteQuorum=2`, `managedLedgerDefaultAckQuorum=2`: Ensures replication across two bookies for fault tolerance.
    - `managedLedgerMaxEntriesPerLedger=50000`, `managedLedgerMinLedgerRolloverTimeMinutes=10`: Balances ledger size and rollover frequency.
    - `defaultNumberOfNamespaceBundles=4`: Improves load distribution across brokers.
@@ -242,8 +242,8 @@ services:
       --cluster cluster-a \
       --zookeeper zookeeper1:2181,zookeeper2:2181,zookeeper3:2181 \
       --configuration-store zookeeper1:2181,zookeeper2:2181,zookeeper3:2181 \
-      --web-service-url http://haproxy:8080 \
-      --broker-service-url pulsar://haproxy:6650
+      --web-service-url http://pulsar-proxy:8080 \
+      --broker-service-url pulsar://pulsar-proxy:6650
     depends_on:
       zookeeper1:
         condition: service_healthy
@@ -504,14 +504,14 @@ services:
 
   - Verify Brokers:
     ```bash
-    docker exec broker1 bin/pulsar-admin brokers list cluster-a -b http://haproxy:8080
+    docker exec broker1 bin/pulsar-admin brokers list cluster-a -b http://pulsar-proxy:8080
     ```
     Should list all three brokers.
 
   - Test Messaging:
     ```bash
-    docker exec broker1 bin/pulsar-client produce my-topic --messages "Hello Pulsar" -n 1 -r pulsar://haproxy:6650
-    docker exec broker1 bin/pulsar-client consume my-topic -s "test-sub" -n 1 -r pulsar://haproxy:6650
+    docker exec broker1 bin/pulsar-client produce my-topic --messages "Hello Pulsar" -n 1 -r pulsar://pulsar-proxy:6650
+    docker exec broker1 bin/pulsar-client consume my-topic -s "test-sub" -n 1 -r pulsar://pulsar-proxy:6650
     ```
 
 5. **Clean Up** (Optional):

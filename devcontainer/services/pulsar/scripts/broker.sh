@@ -14,4 +14,5 @@ echo "Broker: Starting with ADVERTISED_ADDRESS=${ADVERTISED_ADDRESS}"
 
 # Start BookKeeper
 echo "Starting Broker..."
+echo "Broker: Starting with ADVERTISED_ADDRESS=${ADVERTISED_ADDRESS}, PULSAR_MEM=${PULSAR_MEM}"
 exec bin/pulsar broker

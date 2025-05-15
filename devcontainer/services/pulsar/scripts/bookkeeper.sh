@@ -9,7 +9,8 @@ fi
 
 # Apply environment variables to bookkeeper.conf
 echo "Applying environment variables to bookkeeper.conf..."
-/pulsar/bin/apply-config-from-env.py /pulsar/conf/bookkeeper.conf
+echo "Bookie: Starting with ADVERTISED_ADDRESS=${ADVERTISED_ADDRESS}, BOOKIEID=${BOOKIEID}, BOOKIE_MEM=${BOOKIE_MEM}"
+bin/apply-config-from-env.py conf/bookkeeper.conf
 
 # Start BookKeeper
 echo "Starting BookKeeper..."

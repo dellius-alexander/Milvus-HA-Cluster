@@ -1,5 +1,7 @@
 FROM apachepulsar/pulsar:4.0.4
-ARG SERVERID=""
+ARG ADVERTISED_ADDRESS=""
+
+ENV ADVERTISED_ADDRESS=${ADVERTISED_ADDRESS}
 
 # Metadata for the image
 LABEL maintainer="Dellius Alexander admin@hyfisolutions.com"
@@ -11,6 +13,7 @@ USER root
 
 # Copy all config files
 COPY cfg/broker.conf /pulsar/conf/broker.conf
+RUN sed -i "s|\${ADVERTISED_ADDRESS}|${ADVERTISED_ADDRESS}|g" /pulsar/conf/broker.conf
 
 # Copy entrypoint script
 COPY scripts/broker.sh /pulsar/entrypoint.sh

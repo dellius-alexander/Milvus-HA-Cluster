@@ -13,7 +13,9 @@ RUN chown haproxy:haproxy /usr/local/etc/haproxy/haproxy.cfg
 RUN chmod 644 /usr/local/etc/haproxy/haproxy.cfg
 
 # Ensure /var/run exists and has correct permissions
-RUN mkdir -p /var/run && chown haproxy:haproxy /var/run && chmod 770 /var/run
+RUN mkdir -p /var/run && \
+    chown haproxy:haproxy /var/run && \
+    chmod 770 /var/run
 
 # Expose bookkeeper ports
 EXPOSE 8080 6650

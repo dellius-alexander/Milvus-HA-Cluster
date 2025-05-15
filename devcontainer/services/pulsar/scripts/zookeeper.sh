@@ -14,12 +14,12 @@ echo "${SERVERID}" > /pulsar/data/zookeeper/myid
 chmod 644 /pulsar/data/zookeeper/myid
 
 # Apply environment variables to zookeeper.conf
-echo "Applying environment variables to zookeeper.conf..."
+#echo "Applying environment variables to zookeeper.conf..."
 /pulsar/bin/apply-config-from-env.py /pulsar/conf/zookeeper.conf
 
 # Generate ZooKeeper configuration
-echo "Generating ZooKeeper configuration..."
-/pulsar/bin/generate-zookeeper-config.sh /pulsar/conf/zookeeper.conf
+#echo "Generating ZooKeeper configuration..."
+#/pulsar/bin/generate-zookeeper-config.sh /pulsar/conf/zookeeper.conf
 
 # Start ZooKeeper
 echo "Starting ZooKeeper..."

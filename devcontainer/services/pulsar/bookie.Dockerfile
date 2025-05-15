@@ -1,4 +1,9 @@
 FROM apachepulsar/pulsar:4.0.4
+ARG ADVERTISED_ADDRESS=""
+ARG BOOKIEID=""
+
+ENV ADVERTISED_ADDRESS=${ADVERTISED_ADDRESS}
+ENV BOOKIEID=${BOOKIEID}
 
 # Metadata for the image
 LABEL maintainer="Dellius Alexander admin@hyfisolutions.com"
@@ -10,6 +15,8 @@ USER root
 
 # Copy all config files
 COPY cfg/bookkeeper.conf /pulsar/conf/bookkeeper.conf
+RUN sed -i "s|\${BOOKIEID}|${BOOKIEID}|g" /pulsar/conf/bookkeeper.conf
+RUN sed -i "s|\${ADVERTISED_ADDRESS}|${ADVERTISED_ADDRESS}|g" /pulsar/conf/bookkeeper.conf
 
 # Create BookKeeper data directories and set ownership
 RUN mkdir -p /pulsar/data/bookkeeper && \
