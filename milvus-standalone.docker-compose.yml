@@ -89,7 +89,7 @@ services:
     # Use a custom Dockerfile for Prometheus to ensure optimized configuration
     build:
       context: .
-      dockerfile: devcontainer/services/prometheus/prometheus.Dockerfile
+      dockerfile: .devcontainer/services/prometheus/prometheus.Dockerfile
     # Container name for easy identification
     container_name: milvus_prometheus
     hostname: prometheus

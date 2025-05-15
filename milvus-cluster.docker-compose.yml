@@ -5,36 +5,36 @@ services:
   # etcd replica 1
   etcd0:
     extends:
-      file: devcontainer/services/etcd/etcd.yaml
+      file: .devcontainer/services/etcd/etcd.yaml
       service: etcd0
 
   # etcd replica 2
   etcd1:
     extends:
-      file: devcontainer/services/etcd/etcd.yaml
+      file: .devcontainer/services/etcd/etcd.yaml
       service: etcd1
 
   # etcd replica 3
   etcd2:
     extends:
-      file: devcontainer/services/etcd/etcd.yaml
+      file: .devcontainer/services/etcd/etcd.yaml
       service: etcd2
 
   ####################################################################
   # MinIO service for object storage or S3 compatible storage
   minio0:
     extends:
-      file: devcontainer/services/minio/minio.yaml
+      file: .devcontainer/services/minio/minio.yaml
       service: minio0
 
   minio1:
     extends:
-      file: devcontainer/services/minio/minio.yaml
+      file: .devcontainer/services/minio/minio.yaml
       service: minio1
 
   minio2:
     extends:
-      file: devcontainer/services/minio/minio.yaml
+      file: .devcontainer/services/minio/minio.yaml
       service: minio2
 
   ####################################################################
@@ -43,132 +43,132 @@ services:
   # ZooKeeper for Pulsar metadata storage
   zookeeper:
     extends:
-      file: devcontainer/services/pulsar/pulsar.yaml
+      file: .devcontainer/services/pulsar/pulsar.yaml
       service: zookeeper
 
   # Initialize Pulsar cluster metadata
   pulsar-init:
     extends:
-      file: devcontainer/services/pulsar/pulsar.yaml
+      file: .devcontainer/services/pulsar/pulsar.yaml
       service: pulsar-init
 
   # Bookie for Pulsar persistent storage
   bookie:
     extends:
-      file: devcontainer/services/pulsar/pulsar.yaml
+      file: .devcontainer/services/pulsar/pulsar.yaml
       service: bookie
 
   # Pulsar Broker
   broker:
     extends:
-      file: devcontainer/services/pulsar/pulsar.yaml
+      file: .devcontainer/services/pulsar/pulsar.yaml
       service: broker
 
   ####################################################################
   # HAProxy service for load balancing
   haproxy:
     extends:
-      file: devcontainer/services/haproxy/haproxy.yaml
+      file: .devcontainer/services/haproxy/haproxy.yaml
       service: haproxy
 
   ####################################################################
   # Milvus cluster services
   rootcoord:
     extends:
-      file: devcontainer/services/milvus/milvus-cluster.yaml
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
       service: rootcoord
 
   proxy:
     extends:
-      file: devcontainer/services/milvus/milvus-cluster.yaml
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
       service: proxy
 
   querycoord:
     extends:
-      file: devcontainer/services/milvus/milvus-cluster.yaml
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
       service:  querycoord
 
   querynode-1:
     extends:
-      file: devcontainer/services/milvus/milvus-cluster.yaml
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
       service: querynode-1
 
   querynode-2:
     extends:
-      file: devcontainer/services/milvus/milvus-cluster.yaml
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
       service: querynode-2
 
   querynode-3:
     extends:
-      file: devcontainer/services/milvus/milvus-cluster.yaml
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
       service: querynode-3
 
   indexcoord:
     extends:
-      file: devcontainer/services/milvus/milvus-cluster.yaml
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
       service: indexcoord
 
   indexnode-1:
     extends:
-      file: devcontainer/services/milvus/milvus-cluster.yaml
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
       service: indexnode-1
 
   indexnode-2:
     extends:
-      file: devcontainer/services/milvus/milvus-cluster.yaml
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
       service: indexnode-2
 
   indexnode-3:
     extends:
-      file: devcontainer/services/milvus/milvus-cluster.yaml
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
       service: indexnode-3
 
   datacoord:
     extends:
-      file: devcontainer/services/milvus/milvus-cluster.yaml
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
       service: datacoord
 
   datanode-1:
     extends:
-      file: devcontainer/services/milvus/milvus-cluster.yaml
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
       service: datanode-1
 
   datanode-2:
     extends:
-      file: devcontainer/services/milvus/milvus-cluster.yaml
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
       service: datanode-2
 
   datanode-3:
     extends:
-      file: devcontainer/services/milvus/milvus-cluster.yaml
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
       service: datanode-3
 
   ####################################################################
   # Node exporter for host metrics
   node_exporter:
     extends:
-      file: devcontainer/services/milvus/milvus-cluster.yaml
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
       service: node_exporter
 
   ####################################################################
   # Milvus GUI service
   milvus-gui:
     extends:
-      file: devcontainer/services/milvus/milvus-cluster.yaml
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
       service: milvus-gui
 
   ####################################################################
   # Prometheus service for monitoring (optional but recommended)
   prometheus:
     extends:
-      file: devcontainer/services/prometheus/prometheus.yaml
+      file: .devcontainer/services/prometheus/prometheus.yaml
       service: prometheus
 
   ####################################################################
   # Grafana service for visualization
   grafana:
     extends:
-      file: devcontainer/services/grafana/grafana.yaml
+      file: .devcontainer/services/grafana/grafana.yaml
       service: grafana
 
 ####################################################################
