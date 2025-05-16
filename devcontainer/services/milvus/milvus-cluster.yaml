@@ -27,7 +27,7 @@ x-variables:
     MINIO_ADDRESS: haproxy:9000
     MINIO_ACCESS_KEY_ID: "minioadmin"
     MINIO_SECRET_ACCESS_KEY: "WW91ckdyYWZhbmFTdHJvbmdQYXNzd29yZDEyMw"
-    PULSAR_ADDRESS: haproxy:6650
+    PULSAR_ADDRESS: pulsar://pulsar-proxy:6650
 #    ROOT_COORD_ADDRESS: rootcoord:53100
 #    QUERY_COORD_ADDRESS: querycoord:19531
 #    INDEX_COORD_ADDRESS: indexcoord:31000
@@ -49,7 +49,7 @@ services:
         condition: service_healthy
       minio0:
         condition: service_healthy
-      broker:
+      pulsar-proxy:
         condition: service_healthy
       haproxy:
         condition: service_healthy
@@ -69,10 +69,16 @@ services:
         condition: service_healthy
       minio0:
         condition: service_healthy
-      broker:
+      pulsar-proxy:
         condition: service_healthy
       haproxy:
         condition: service_healthy
+    networks:
+        - milvus
+        - external-network
+        - pulsar-network
+        - etcd-network
+        - minio-network
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:9091/healthz" ]
       interval: 30s

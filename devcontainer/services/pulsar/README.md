@@ -27,13 +27,22 @@ This document provides a comprehensive guide to the Apache Pulsar cluster implem
 
 ## Overview
 
-This Apache Pulsar cluster implementation deploys a high-availability messaging system using Docker Compose. The setup includes a ZooKeeper ensemble, BookKeeper nodes, Pulsar brokers, proxy nodes, and an HAProxy load balancer to ensure scalability, fault tolerance, and efficient load distribution. The implementation is designed for production-grade environments requiring reliable message streaming and processing, such as those supporting Milvus high-availability setups.
+This Apache Pulsar cluster implementation deploys a high-availability messaging system 
+using Docker Compose. The setup includes a ZooKeeper ensemble, BookKeeper nodes, Pulsar 
+brokers, proxy nodes, and an HAProxy load balancer to ensure scalability, fault tolerance, 
+and efficient load distribution. The implementation is designed for production-grade 
+environments requiring reliable message streaming and processing, such as those supporting 
+Milvus high-availability setups.
 
 ## What is Apache Pulsar?
 
 ### Definition and Purpose
 
-Apache Pulsar is an open-source, distributed messaging and streaming platform designed for high-performance, scalable, and fault-tolerant data processing. It combines the flexibility of a publish-subscribe messaging system with the durability and scalability of a log-based streaming platform. Pulsar is built to handle large-scale, real-time data pipelines and is widely used in cloud-native applications.
+Apache Pulsar is an open-source, distributed messaging and streaming platform designed for 
+high-performance, scalable, and fault-tolerant data processing. It combines the flexibility 
+of a publish-subscribe messaging system with the durability and scalability of a log-based 
+streaming platform. Pulsar is built to handle large-scale, real-time data pipelines and is 
+widely used in cloud-native applications.
 
 According to the Apache Pulsar documentation (https://pulsar.apache.org/reference/#/4.0.x/), Pulsar provides:
 - **Multi-tenancy**: Supports multiple tenants, namespaces, and topics within a single cluster.
@@ -41,7 +50,8 @@ According to the Apache Pulsar documentation (https://pulsar.apache.org/referenc
 - **Tiered storage**: Offloads data to long-term storage (e.g., S3, GCS) for cost efficiency.
 - **Unified messaging model**: Combines queueing and streaming semantics for diverse workloads.
 
-**Non-standard term**: *Multi-tenancy* refers to a system architecture where a single instance serves multiple isolated users or groups (tenants), ensuring data separation and resource sharing.
+**Non-standard term**: *Multi-tenancy* refers to a system architecture where a single instance 
+serves multiple isolated users or groups (tenants), ensuring data separation and resource sharing.
 
 ### Use Cases
 
@@ -51,7 +61,8 @@ Pulsar is suitable for various applications, including:
 - **Data pipelines**: Building ETL (Extract, Transform, Load) workflows for analytics.
 - **Machine learning**: Feeding real-time data to ML models for inference or training.
 
-In this implementation, Pulsar serves as the messaging backbone for a Milvus high-availability setup, ensuring reliable data exchange between distributed components.
+In this implementation, Pulsar serves as the messaging backbone for a Milvus high-availability 
+setup, ensuring reliable data exchange between distributed components.
 
 ### Pros and Cons
 
@@ -323,7 +334,7 @@ The following test cases use `pulsar-admin` and `curl` to verify the cluster’s
 
 2. **List ZooKeeper Nodes**:
    ```bash
-   pulsar-admin zookeeper shell --zookeeper zookeeper1:2181 ls /zookeeper
+   pulsar-admin --admin-url http://pulsar-proxy:8080  zookeeper-shell --zookeeper zookeeper1:2181 ls /zookeeper
    ```
    **Expected Output**: Lists nodes like `quota`, `zookeeper`.
 
@@ -331,7 +342,7 @@ The following test cases use `pulsar-admin` and `curl` to verify the cluster’s
    ```bash
    curl -s http://bookie1:8000/api/v1/bookkeeper/health
    ```
-   **Expected Output**: `{"status":"OK"}`
+   **Expected Output**: `{"status":"OK"}` or no error.
 
 4. **Verify BookKeeper Disk Usage**:
    ```bash
@@ -341,55 +352,55 @@ The following test cases use `pulsar-admin` and `curl` to verify the cluster’s
 
 5. **List Brokers**:
    ```bash
-   pulsar-admin brokers list cluster-a --url http://pulsar-proxy:8080
+   pulsar-admin --admin-url http://pulsar-proxy:8080 brokers list cluster-a 
    ```
    **Expected Output**: Lists `broker1`, `broker2`, `broker3`.
 
 6. **Check Broker Health**:
    ```bash
-   pulsar-admin brokers healthcheck --url http://pulsar-proxy:8080
+   pulsar-admin --admin-url http://pulsar-proxy:8080 brokers healthcheck 
    ```
    **Expected Output**: `Ok`
 
 7. **Create a Namespace**:
    ```bash
-   pulsar-admin namespaces create test-tenant/test-namespace --url http://pulsar-proxy:8080
+   pulsar-admin --admin-url http://pulsar-proxy:8080 namespaces create test-tenant/test-namespace 
    ```
    **Expected Output**: No output (success).
 
 8. **List Namespaces**:
    ```bash
-   pulsar-admin namespaces list test-tenant --url http://pulsar-proxy:8080
+   pulsar-admin --admin-url http://pulsar-proxy:8080 namespaces list test-tenant 
    ```
    **Expected Output**: Includes `test-tenant/test-namespace`.
 
 9. **Create a Topic**:
    ```bash
-   pulsar-admin topics create persistent://test-tenant/test-namespace/test-topic --url http://pulsar-proxy:8080
+   pulsar-admin --admin-url http://pulsar-proxy:8080 topics create persistent://test-tenant/test-namespace/test-topic 
    ```
    **Expected Output**: No output (success).
 
 10. **List Topics**:
     ```bash
-    pulsar-admin topics list test-tenant/test-namespace --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 topics list test-tenant/test-namespace 
     ```
     **Expected Output**: Includes `persistent://test-tenant/test-namespace/test-topic`.
 
 11. **Produce a Message**:
     ```bash
-    pulsar-admin topics produce persistent://test-tenant/test-namespace/test-topic --messages "Hello Pulsar" --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 topics produce persistent://test-tenant/test-namespace/test-topic --messages "Hello Pulsar" 
     ```
     **Expected Output**: No output (success).
 
 12. **Consume a Message**:
     ```bash
-    pulsar-admin topics consume persistent://test-tenant/test-namespace/test-topic --subscription-name test-sub --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 topics consume persistent://test-tenant/test-namespace/test-topic --subscription-name test-sub 
     ```
     **Expected Output**: Includes `Hello Pulsar`.
 
 13. **Check Topic Stats**:
     ```bash
-    pulsar-admin topics stats persistent://test-tenant/test-namespace/test-topic --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 topics stats persistent://test-tenant/test-namespace/test-topic 
     ```
     **Expected Output**: JSON with message count and subscription details.
 
@@ -413,41 +424,47 @@ The following test cases use `pulsar-admin` and `curl` to verify the cluster’s
 
 17. **Create a Subscription**:
     ```bash
-    pulsar-admin topics subscribe persistent://test-tenant/test-namespace/test-topic --subscription-name test-sub2 --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 topics subscribe persistent://test-tenant/test-namespace/test-topic --subscription-name test-sub2 
     ```
     **Expected Output**: No output (success).
 
 18. **Check Subscription Stats**:
     ```bash
-    pulsar-admin topics stats persistent://test-tenant/test-namespace/test-topic --get-subscriptions test-sub2 --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 topics stats persistent://test-tenant/test-namespace/test-topic --get-subscriptions test-sub2 
     ```
     **Expected Output**: JSON with subscription details.
 
 19. **Test Message Retention**:
     ```bash
-    pulsar-admin namespaces set-retention test-tenant/test-namespace --time 1h --size 1G --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 namespaces set-retention test-tenant/test-namespace --time 1h --size 1G 
     ```
     **Expected Output**: No output (success).
 
 20. **Verify Cluster Metadata**:
     ```bash
-    pulsar-admin clusters get cluster-a --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 clusters get cluster-a 
     ```
     **Expected Output**: JSON with cluster details.
 
 ## External Container Testing
 
-This section outlines how to test the Pulsar cluster using an external Docker container, including setup instructions, 20 test cases, and 20 additional `pulsar-admin` use cases for advanced administration. The tests verify the cluster's functionality, and the use cases demonstrate administrative capabilities.
+This section outlines how to test the Pulsar cluster using an external Docker container, 
+including setup instructions, 20 test cases, and 20 additional `pulsar-admin` use cases 
+for advanced administration. The tests verify the cluster's functionality, and the use 
+cases demonstrate administrative capabilities.
 
 ### Setup
 
-To perform testing, launch an external Docker container with the Pulsar image and connect it to the `pulsar` network defined in `pulsar.yaml`. Use the following command:
+To perform testing, launch an external Docker container with the Pulsar image and 
+connect it to the `pulsar` network defined in `pulsar.yaml`. Use the following command:
 
 ```bash
 docker run -it --rm --network pulsar apachepulsar/pulsar:4.0.4 bash
 ```
 
-From within the container, ensure `pulsar-admin`, `pulsar-client`, and `curl` are available. The container will communicate with the cluster via `pulsar-proxy` on ports 6650 (binary protocol) and 8080 (HTTP admin API).
+From within the container, ensure `pulsar-admin`, `pulsar-client`, and `curl` are available. 
+The container will communicate with the cluster via `pulsar-proxy` on ports 6650 (binary protocol) 
+and 8080 (HTTP admin API).
 
 ### External Container Test Cases
 
@@ -503,13 +520,13 @@ These tests verify the cluster's functionality using `pulsar-client`, `curl`, an
 
 9. **Test Topic Partition Creation**:
    ```bash
-   pulsar-admin topics create-partitioned-topic persistent://test-tenant/test-namespace/partitioned-topic --partitions 3 --url http://pulsar-proxy:8080
+   pulsar-admin --admin-url http://pulsar-proxy:8080 topics create-partitioned-topic persistent://test-tenant/test-namespace/partitioned-topic --partitions 3 
    ```
    **Expected Output**: No output (success).
 
 10. **List Partitioned Topics**:
     ```bash
-    pulsar-admin topics list-partitioned-topics test-tenant/test-namespace --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 topics list-partitioned-topics test-tenant/test-namespace 
     ```
     **Expected Output**: Includes `persistent://test-tenant/test-namespace/partitioned-topic`.
 
@@ -545,31 +562,31 @@ These tests verify the cluster's functionality using `pulsar-client`, `curl`, an
 
 16. **Verify Topic Backlog**:
     ```bash
-    pulsar-admin topics stats-internal persistent://test-tenant/test-namespace/test-topic --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 topics stats-internal persistent://test-tenant/test-namespace/test-topic 
     ```
     **Expected Output**: JSON with backlog details.
 
 17. **Test Subscription Type**:
     ```bash
-    pulsar-admin topics subscribe persistent://test-tenant/test-namespace/test-topic --subscription-name shared-sub --subscription-type Shared --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 topics subscribe persistent://test-tenant/test-namespace/test-topic --subscription-name shared-sub --subscription-type Shared 
     ```
     **Expected Output**: No output (success).
 
 18. **Check Shared Subscription**:
     ```bash
-    pulsar-admin topics stats persistent://test-tenant/test-namespace/test-topic --get-subscriptions shared-sub --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 topics stats persistent://test-tenant/test-namespace/test-topic --get-subscriptions shared-sub 
     ```
     **Expected Output**: JSON with shared subscription details.
 
 19. **Test Message TTL**:
     ```bash
-    pulsar-admin namespaces set-message-ttl test-tenant/test-namespace --messageTTL 60 --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 namespaces set-message-ttl test-tenant/test-namespace --messageTTL 60 
     ```
     **Expected Output**: No output (success).
 
 20. **Verify Namespace Policies**:
     ```bash
-    pulsar-admin namespaces policies test-tenant/test-namespace --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 namespaces policies test-tenant/test-namespace 
     ```
     **Expected Output**: JSON with namespace policies.
 
@@ -579,79 +596,79 @@ These `pulsar-admin` commands demonstrate advanced administrative tasks. Run the
 
 1. **Set Schema for Topic**:
    ```bash
-   pulsar-admin schemas upload persistent://test-tenant/test-namespace/test-topic --schema '{"type":"STRING"}' --url http://pulsar-proxy:8080
+   pulsar-admin --admin-url http://pulsar-proxy:8080 schemas upload persistent://test-tenant/test-namespace/test-topic --schema '{"type":"STRING"}' 
    ```
    **Expected Output**: No output (success).
 
 2. **Get Schema Info**:
    ```bash
-   pulsar-admin schemas get persistent://test-tenant/test-namespace/test-topic --url http://pulsar-proxy:8080
+   pulsar-admin --admin-url http://pulsar-proxy:8080 schemas get persistent://test-tenant/test-namespace/test-topic 
    ```
    **Expected Output**: JSON with schema details.
 
 3. **Delete Schema**:
    ```bash
-   pulsar-admin schemas delete persistent://test-tenant/test-namespace/test-topic --url http://pulsar-proxy:8080
+   pulsar-admin --admin-url http://pulsar-proxy:8080 schemas delete persistent://test-tenant/test-namespace/test-topic 
    ```
    **Expected Output**: No output (success).
 
 4. **Set Deduplication on Namespace**:
    ```bash
-   pulsar-admin namespaces set-deduplication test-tenant/test-namespace --enabletofile --enable-deduplication --url http://pulsar-proxy:8080
+   pulsar-admin --admin-url http://pulsar-proxy:8080 namespaces set-deduplication test-tenant/test-namespace --enabletofile --enable-deduplication 
    ```
    **Expected Output**: No output (success).
 
 5. **Get Deduplication Status**:
    ```bash
-   pulsar-admin namespaces get-deduplication test-tenant/test-namespace --url http://pulsar-proxy:8080
+   pulsar-admin --admin-url http://pulsar-proxy:8080 namespaces get-deduplication test-tenant/test-namespace 
    ```
    **Expected Output**: JSON with deduplication status.
 
 6. **Set Backlog Quota**:
    ```bash
-   pulsar-admin namespaces set-backlog-quota test-tenant/test-namespace --policy producer_request_hold --limit-size 100MB --url http://pulsar-proxy:8080
+   pulsar-admin --admin-url http://pulsar-proxy:8080 namespaces set-backlog-quota test-tenant/test-namespace --policy producer_request_hold --limit-size 100MB 
    ```
    **Expected Output**: No output (success).
 
 7. **Get Backlog Quota**:
    ```bash
-   pulsar-admin namespaces get-backlog-quota test-tenant/test-namespace --url http://pulsar-proxy:8080
+   pulsar-admin --admin-url http://pulsar-proxy:8080 namespaces get-backlog-quota test-tenant/test-namespace 
    ```
    **Expected Output**: JSON with backlog quota details.
 
 8. **Set Topic Auto-Creation**:
    ```bash
-   pulsar-admin namespaces set-auto-topic-creation test-tenant/test-namespace --enable --url http://pulsar-proxy:8080
+   pulsar-admin --admin-url http://pulsar-proxy:8080 namespaces set-auto-topic-creation test-tenant/test-namespace --enable 
    ```
    **Expected Output**: No output (success).
 
 9. **Get Topic Auto-Creation**:
    ```bash
-   pulsar-admin namespaces get-auto-topic-creation test-tenant/test-namespace --url http://pulsar-proxy:8080
+   pulsar-admin --admin-url http://pulsar-proxy:8080 namespaces get-auto-topic-creation test-tenant/test-namespace 
    ```
    **Expected Output**: JSON with auto-creation settings.
 
 10. **Unload Topic**:
     ```bash
-    pulsar-admin topics unload persistent://test-tenant/test-namespace/test-topic --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 topics unload persistent://test-tenant/test-namespace/test-topic 
     ```
     **Expected Output**: No output (success).
 
 11. **Set Subscription Expiration**:
     ```bash
-    pulsar-admin namespaces set-subscription-expiration-time test-tenant/test-namespace --time 60 --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 namespaces set-subscription-expiration-time test-tenant/test-namespace --time 60 
     ```
     **Expected Output**: No output (success).
 
 12. **Get Subscription Expiration**:
     ```bash
-    pulsar-admin namespaces get-subscription-expiration-time test-tenant/test-namespace --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 namespaces get-subscription-expiration-time test-tenant/test-namespace 
     ```
     **Expected Output**: JSON with expiration time.
 
 13. **Set Max Consumers per Topic**:
     ```bash
-    pulsar-admin namespaces set-max-consumers-per-topic test-tenant/test-namespace --max-consumers 10 --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 namespaces set-max-consumers-per-topic test-tenant/test-namespace --max-consumers 10 
     ```
     **Expected Output**: No output (success).
 
@@ -659,37 +676,37 @@ These `pulsar-admin` commands demonstrate advanced administrative tasks. Run the
 
 15. **Set Max Producers per Topic**:
     ```bash
-    pulsar-admin namespaces set-max-producers-per-topic test-tenant/test-namespace --max-producers 5 --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 namespaces set-max-producers-per-topic test-tenant/test-namespace --max-producers 5 
     ```
     **Expected Output**: No output (success).
 
 16. **Get Max Producers per Topic**:
     ```bash
-    pulsar-admin namespaces get-max-producers-per-topic test-tenant/test-namespace --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 namespaces get-max-producers-per-topic test-tenant/test-namespace 
     ```
     **Expected Output**: JSON with max producers setting.
 
 17. **Set Retention Policy**:
     ```bash
-    pulsar-admin namespaces set-retention test-tenant/test-namespace --time 1d --size 10GB --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 namespaces set-retention test-tenant/test-namespace --time 1d --size 10GB 
     ```
     **Expected Output**: No output (success).
 
 18. **Get Retention Policy**:
     ```bash
-    pulsar-admin namespaces get-retention test-tenant/test-namespace --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 namespaces get-retention test-tenant/test-namespace 
     ```
     **Expected Output**: JSON with retention policy.
 
 19. **Clear Backlog for Subscription**:
     ```bash
-    pulsar-admin topics skip persistent://test-tenant/test-namespace/test-topic --sub-name test-sub --all --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 topics skip persistent://test-tenant/test-namespace/test-topic --sub-name test-sub --all 
     ```
     **Expected Output**: No output (success).
 
 20. **Reset Cursor**:
     ```bash
-    pulsar-admin topics reset-cursor persistent://test-tenant/test-namespace/test-topic --sub-name test-sub --message-id earliest --url http://pulsar-proxy:8080
+    pulsar-admin --admin-url http://pulsar-proxy:8080 topics reset-cursor persistent://test-tenant/test-namespace/test-topic --sub-name test-sub --message-id earliest 
     ```
     **Expected Output**: No output (success).
 
@@ -705,7 +722,12 @@ These `pulsar-admin` commands demonstrate advanced administrative tasks. Run the
 
 ## Conclusion
 
-This Apache Pulsar cluster implementation provides a robust, scalable, and fault-tolerant messaging system for Milvus high-availability setups. By leveraging ZooKeeper, BookKeeper, brokers, proxies, and HAProxy, the cluster ensures reliable message delivery and load distribution. The provided test cases, external container tests, and `pulsar-admin` use cases facilitate verification and administration, making this setup suitable for production environments.
+This Apache Pulsar cluster implementation provides a robust, scalable, and fault-tolerant 
+messaging system for Milvus high-availability setups. By leveraging ZooKeeper, BookKeeper, 
+brokers, proxies, and HAProxy, the cluster ensures reliable message delivery and load 
+distribution. The provided test cases, external container tests, and `pulsar-admin` use 
+cases facilitate verification and administration, making this setup suitable for production 
+environments.
 
 ## Glossary
 

@@ -1,9 +1,9 @@
 ####################################################################
 # Define networks for service communication
 networks:
-  pulsar:
-    name: pulsar
-#    internal: true
+  pulsar-network:
+    name: pulsar-network
+    internal: true
     driver: bridge
     ipam:
       driver: default
@@ -40,7 +40,7 @@ services:
     restart: on-failure
     # mem_limit: 2048m  # Reserve 512MB (256MB heap + overhead)
     networks:
-      - pulsar
+      - pulsar-network
     volumes:
       - zookeeper_data1:/pulsar/data/zookeeper
 #      - ./zookeeper.conf:/pulsar/conf/zookeeper.conf
@@ -73,7 +73,7 @@ services:
     restart: on-failure
     # mem_limit: 2048m  # Reserve 512MB (256MB heap + overhead)
     networks:
-      - pulsar
+      - pulsar-network
     volumes:
       - zookeeper_data2:/pulsar/data/zookeeper
 #      - ./zookeeper.conf:/pulsar/conf/zookeeper.conf
@@ -106,7 +106,7 @@ services:
     restart: on-failure
     # mem_limit: 2048m  # Reserve 2048MB (256MB heap + overhead)
     networks:
-      - pulsar
+      - pulsar-network
     volumes:
       - zookeeper_data3:/pulsar/data/zookeeper
 #      - ./zookeeper.conf:/pulsar/conf/zookeeper.conf
@@ -134,7 +134,7 @@ services:
     hostname: pulsar-init
     # mem_limit: 2048m  # Reserve 2048MB
     networks:
-      - pulsar
+      - pulsar-network
     command: ["bash", "-c", "/pulsar/bin/pulsar initialize-cluster-metadata \
               --cluster=cluster-a \
               --zookeeper=zookeeper1:2181,zookeeper2:2181,zookeeper3:2181 \
@@ -164,13 +164,14 @@ services:
     restart: on-failure
     # mem_limit: 2048m  # Reserve 1GB (512MB heap + overhead)
     networks:
-      - pulsar
+      - pulsar-network
     environment:
       - ADVERTISED_ADDRESS=bookie1
       - BOOKIEID=bookie1:3181
 #      - BOOKIE_MEM=-Xms1g -Xmx1g -XX:MaxDirectMemorySize=256m
     expose:
       - "3181"  # Bookie server port
+      - "8000"  # HTTP server port
     volumes:
       - bookkeeper_data1:/pulsar/data/bookkeeper
     command: [ "/bin/bash", "-c", "bin/apply-config-from-env.py conf/bookkeeper.conf && \
@@ -200,13 +201,14 @@ services:
     restart: on-failure
     # mem_limit: 2048m  # Reserve 1GB (512MB heap + overhead)
     networks:
-      - pulsar
+      - pulsar-network
     environment:
       - ADVERTISED_ADDRESS=bookie2
       - BOOKIEID=bookie2:3181
 #      - BOOKIE_MEM=-Xms1g -Xmx1g -XX:MaxDirectMemorySize=256m
     expose:
       - "3181"  # Bookie server port
+      - "8000"  # HTTP server port
     volumes:
       - bookkeeper_data2:/pulsar/data/bookkeeper
     command: [ "/bin/bash", "-c", "bin/apply-config-from-env.py conf/bookkeeper.conf && \
@@ -235,13 +237,14 @@ services:
     restart: on-failure
     # mem_limit: 2048m  # Reserve 1GB (512MB heap + overhead)
     networks:
-      - pulsar
+      - pulsar-network
     environment:
       - ADVERTISED_ADDRESS=bookie3
       - BOOKIEID=bookie3:3181
 #      - BOOKIE_MEM=-Xms1g -Xmx1g -XX:MaxDirectMemorySize=256m
     expose:
       - "3181"  # Bookie server port
+      - "8000"  # HTTP server port
     volumes:
       - bookkeeper_data3:/pulsar/data/bookkeeper
     command: [ "/bin/bash", "-c", "bin/apply-config-from-env.py conf/bookkeeper.conf && \
@@ -270,7 +273,7 @@ services:
     restart: on-failure
     # mem_limit: 2304m  # Reserve 1GB (512MB heap + overhead)
     networks:
-      - pulsar
+      - pulsar-network
     environment:
       - ADVERTISED_ADDRESS=broker1
       - PULSAR_MEM=-Xms1g -Xmx1g -XX:MaxDirectMemorySize=256m
@@ -306,7 +309,7 @@ services:
     restart: on-failure
     # mem_limit: 2304m  # Reserve 1GB (512MB heap + overhead)
     networks:
-      - pulsar
+      - pulsar-network
     environment:
       - ADVERTISED_ADDRESS=broker2
       - PULSAR_MEM=-Xms1g -Xmx1g -XX:MaxDirectMemorySize=256m
@@ -342,7 +345,7 @@ services:
     restart: on-failure
     # mem_limit: 2304m  # Reserve 1GB (512MB heap + overhead)
     networks:
-      - pulsar
+      - pulsar-network
     environment:
       - ADVERTISED_ADDRESS=broker3
       - PULSAR_MEM=-Xms1g -Xmx1g -XX:MaxDirectMemorySize=256m
@@ -378,7 +381,7 @@ services:
     restart: on-failure
     # mem_limit: 2048m
     networks:
-      - pulsar
+      - pulsar-network
     environment:
       - PULSAR_MEM=-Xms1g -Xmx1g -XX:MaxDirectMemorySize=256m
     expose:
@@ -412,7 +415,7 @@ services:
     restart: on-failure
     # mem_limit: 2048m
     networks:
-      - pulsar
+      - pulsar-network
     environment:
       - PULSAR_MEM=-Xms1g -Xmx1g -XX:MaxDirectMemorySize=256m
     expose:
@@ -446,7 +449,7 @@ services:
     restart: on-failure
     # mem_limit: 2048m
     networks:
-      - pulsar
+      - pulsar-network
     environment:
       - PULSAR_MEM=-Xms1g -Xmx1g -XX:MaxDirectMemorySize=256m
     expose:
@@ -479,7 +482,8 @@ services:
     restart: on-failure
     # mem_limit: 1024m
     networks:
-      - pulsar
+      - pulsar-network
+      - milvus
     ports:
       - "6650:6650"
       - "8080:8080"
@@ -500,34 +504,4 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-
-##########################################################################
-#  # Standalone Pulsar Service
-#  pulsar:
-#    container_name: milvus-pulsar
-#    image: apachepulsar/pulsar:4.0.4
-#    volumes:
-#      - pulsar_data:/pulsar/data
-#    environment:
-#      # bin/apply-config-from-env.py script will modify the configuration file based on the environment variables
-#      # nettyMaxFrameSizeBytes must be calculated from maxMessageSize + 10240 (padding)
-#      - nettyMaxFrameSizeBytes=104867840 # this is 104857600 + 10240 (padding)
-#      - defaultRetentionTimeInMinutes=10080
-#      - defaultRetentionSizeInMB=8192
-#      # maxMessageSize is missing from standalone.conf, must use PULSAR_PREFIX_ to get it configured
-#      - PULSAR_PREFIX_maxMessageSize=104857600
-#      - PULSAR_GC=-XX:+UseG1GC
-#    restart: always
-#    healthcheck:
-#      test: [ "CMD", "bin/pulsar-admin", "brokers", "healthcheck" ]
-#      start_period: 60s
-#      interval: 30s
-#      timeout: 20s
-#      retries: 5
-#    command: |
-#      /bin/bash -c \
-#      "bin/apply-config-from-env.py conf/standalone.conf && \
-#      exec bin/pulsar standalone --no-functions-worker --no-stream-storage"
-#    networks:
-#      - pulsar-network
 ##########################################################################

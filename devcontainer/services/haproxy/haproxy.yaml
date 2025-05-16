@@ -24,7 +24,7 @@ services:
         condition: service_healthy
       etcd0:
         condition: service_healthy
-      broker:
+      pulsar-proxy:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "sh", "-c", "haproxy -v" ]
@@ -41,7 +41,6 @@ services:
       - milvus
       - etcd-network
       - minio-network
-      - pulsar-network
       - external-network
 
 ####################################################################
@@ -61,12 +60,6 @@ networks:
       driver: default
   etcd-network:
     name: etcd-network
-    internal: true
-    driver: bridge
-    ipam:
-      driver: default
-  pulsar-network:
-    name: pulsar-network
     internal: true
     driver: bridge
     ipam:

@@ -1,485 +1,401 @@
-Module: milvus.py
+# Milvus Cluster Implementation
 
-This module provides a comprehensive implementation of a Milvus vector database interface, integrating all necessary
-functionalities for managing collections, vectors, searches, indexes, partitions, statistics, monitoring, embeddings,
-administrative tasks, and data imports. It employs a wide range of design patterns to ensure flexibility, extensibility,
-maintainability, reusability, and testability.
+This document provides a comprehensive overview of a Milvus cluster implementation using Docker Compose. It includes details about Milvus and its dependencies, a network diagram, testing procedures, best practices, and definitions for technical terms.
 
-Key Features:
-- Asynchronous and synchronous processing with batch and streaming capabilities.
-- Robust security with encryption, authentication, authorization, and access control.
-- Extensive error handling with retries and logging.
-- Comprehensive testing suite including unit, performance, load, stress, and security tests.
-- Support for all embedding types, multiple data fields, and complex queries.
-- Implementation of all specified design patterns: Factory, Singleton, Builder, Strategy, Command, Template Method,
-  Prototype, Composite, Decorator, Facade, Visitor, State, Mediator, Chain of Responsibility, Proxy, Flyweight, Bridge,
-  Interpreter, Memento, and Observer.
+## Table of Contents
 
-Example Usage:
-```python
-import asyncio
-from milvus import MilvusAPI, FieldSchema, DataType
+- [Overview](#overview)
+- [Component Breakdown](#component-breakdown)
+  - [Milvus](#milvus)
+  - [etcd](#etcd)
+  - [MinIO](#minio)
+  - [Grafana](#grafana)
+  - [Prometheus](#prometheus)
+  - [Pulsar](#pulsar)
+  - [HAProxy](#haproxy)
+  - [Why Cluster Implementation](#why-cluster-implementation)
+- [Cluster Architecture Diagram](#cluster-architecture-diagram)
+- [Testing the Milvus Cluster](#testing-the-milvus-cluster)
+  - [Test 1: Verify Milvus Proxy Health](#test-1-verify-milvus-proxy-health)
+  - [Test 2: Connect to Milvus GUI](#test-2-connect-to-milvus-gui)
+  - [Test 3: Create a Collection](#test-3-create-a-collection)
+  - [Test 4: Insert Vectors](#test-4-insert-vectors)
+  - [Test 5: Search Vectors](#test-5-search-vectors)
+  - [Test 6: Verify etcd Cluster Health](#test-6-verify-etcd-cluster-health)
+  - [Test 7: Check MinIO Health](#test-7-check-minio-health)
+  - [Test 8: Validate Pulsar Cluster](#test-8-validate-pulsar-cluster)
+  - [Test 9: Monitor Metrics with Prometheus](#test-9-monitor-metrics-with-prometheus)
+  - [Test 10: Visualize Metrics in Grafana](#test-10-visualize-metrics-in-grafana)
+- [Best Practices](#best-practices)
+- [Definitions](#definitions)
+- [Conclusion](#conclusion)
 
-async def main():
-    api = MilvusAPI()
-    fields = [
-        FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=True),
-        FieldSchema(name="vector", dtype=DataType.FLOAT_VECTOR, dim=128)
-    ]
-    await api.create_collection("test_collection", fields, "test_db")
-    entities = [{"vector": [0.1] * 128} for _ in range(10)]
-    await api.insert("test_collection", entities, database_name="test_db")
-    results = await api.search("test_collection", [[0.1] * 128], "vector", {"metric_type": "COSINE"}, 5, database_name="test_db")
-    print(f"Search results: {results}")
-    await api.drop_collection("test_collection", "test_db")
+## Overview
 
-asyncio.run(main())
-```
+The Milvus cluster implementation is a distributed vector database system designed for high-performance similarity search and analytics on large-scale vector data. It leverages Docker Compose to orchestrate multiple services, including Milvus, etcd, MinIO, Pulsar, HAProxy, Prometheus, and Grafana, ensuring scalability, reliability, and observability. This setup is ideal for applications requiring efficient management of high-dimensional data, such as image recognition, recommendation systems, and natural language processing.
 
-Mermaid Class Diagram:
-```mermaid
-classDiagram
-    class MilvusAPI {
-        -IConnectAPI _connect_api
-        -ICollectionAPI _collection_api
-        -IVectorAPI _vector_api
-        -ISearchAPI _search_api
-        -IIndexAPI _index_api
-        -IPartitionAPI _partition_api
-        -IStatAPI _stat_api
-        -IMonitorAPI _monitor_api
-        -IEmbeddingAPI _embedding_api
-        -IAdminAPI _admin_api
-        -IDataImportAPI _data_import_api
-        +create_collection()
-        +insert()
-        +search()
-        +drop_collection()
-        +list_collections()
-        +describe_collection()
-        +delete()
-        +create_index()
-        +drop_index()
-        +create_partition()
-        +drop_partition()
-        +get_collection_stats()
-        +get_monitor_info()
-        +generate_embeddings()
-        +create_user()
-        +list_users()
-        +import_data()
-    }
-    class IConnectAPI {
-        <<interface>>
-        +connect()
-        +disconnect()
-    }
-    class ConnectAPI {
-        -MilvusClient client
-        -bool _initialized
-        -str _alias
-        -int _timeout
-        +connect()
-        +disconnect()
-    }
-    class ICollectionAPI {
-        <<interface>>
-        +create_collection()
-        +list_collections()
-        +describe_collection()
-        +drop_collection()
-    }
-    class CollectionAPI {
-        -IConnectAPI _connect_api
-        +create_collection()
-        +list_collections()
-        +describe_collection()
-        +drop_collection()
-    }
-    class IVectorAPI {
-        <<interface>>
-        +insert()
-        +delete()
-    }
-    class VectorAPI {
-        -IConnectAPI _connect_api
-        +insert()
-        +delete()
-    }
-    class ISearchAPI {
-        <<interface>>
-        +search()
-    }
-    class SearchAPI {
-        -IConnectAPI _connect_api
-        +search()
-    }
-    class IIndexAPI {
-        <<interface>>
-        +create_index()
-        +drop_index()
-    }
-    class IndexAPI {
-        -IConnectAPI _connect_api
-        +create_index()
-        +drop_index()
-    }
-    class IPartitionAPI {
-        <<interface>>
-        +create_partition()
-        +drop_partition()
-    }
-    class PartitionAPI {
-        -IConnectAPI _connect_api
-        +create_partition()
-        +drop_partition()
-    }
-    class IStatAPI {
-        <<interface>>
-        +get_collection_stats()
-    }
-    class StatAPI {
-        -IConnectAPI _connect_api
-        +get_collection_stats()
-    }
-    class IMonitorAPI {
-        <<interface>>
-        +get_monitor_info()
-    }
-    class MonitorAPI {
-        -IConnectAPI _connect_api
-        +get_monitor_info()
-    }
-    class IEmbeddingAPI {
-        <<interface>>
-        +generate_embeddings()
-    }
-    class EmbeddingAPI {
-        -IConnectAPI _connect_api
-        +generate_embeddings()
-    }
-    class IAdminAPI {
-        <<interface>>
-        +create_user()
-        +list_users()
-    }
-    class AdminAPI {
-        -IConnectAPI _connect_api
-        +create_user()
-        +list_users()
-    }
-    class IDataImportAPI {
-        <<interface>>
-        +import_data()
-    }
-    class DataImportAPI {
-        -IConnectAPI _connect_api
-        +import_data()
-    }
-    class ConfigManager {
-        -Dict config
-        +get()
-    }
-    class SecurityManager {
-        -Fernet cipher
-        +encrypt()
-        +decrypt()
-        +hash_password()
-        +authorize()
-    }
-    class CollectionFactory {
-        +create_standard_collection()
-    }
-    class CollectionSchemaBuilder {
-        -List[FieldSchema] _fields
-        -str _description
-        +add_field()
-        +set_description()
-        +build()
-    }
-    class Strategy {
-        <<interface>>
-        +execute()
-    }
-    class InsertStrategy {
-        +execute()
-    }
-    class SearchStrategy {
-        +execute()
-    }
-    class Command {
-        <<interface>>
-        +execute()
-    }
-    class InsertCommand {
-        -VectorAPI api
-        -str collection_name
-        -List[Dict] entities
-        +execute()
-    }
-    class Operation {
-        <<interface>>
-        +execute()
-        +validate()
-        +perform()
-        +post_process()
-    }
-    class InsertOperation {
-        -VectorAPI api
-        +execute()
-        +validate()
-        +perform()
-        +post_process()
-    }
-    class Prototype {
-        <<interface>>
-        +clone()
-    }
-    class CollectionPrototype {
-        -Collection collection
-        +clone()
-    }
-    class Component {
-        <<interface>>
-        +add()
-        +remove()
-    }
-    class CollectionComposite {
-        -str name
-        -List[Component] children
-        +add()
-        +remove()
-    }
-    class Visitor {
-        <<interface>>
-        +visit_collection()
-    }
-    class State {
-        <<interface>>
-        +handle()
-    }
-    class LoadedState {
-        +handle()
-    }
-    class Mediator {
-        +notify()
-    }
-    class Handler {
-        <<interface>>
-        -Handler next_handler
-        +set_next()
-        +handle()
-    }
-    class Proxy {
-        -Object real_subject
-        +request()
-    }
-    class FlyweightFactory {
-        -Dict _flyweights
-        +get_flyweight()
-    }
-    class BridgeImplementor {
-        <<interface>>
-        +operation()
-    }
-    class Interpreter {
-        +interpret()
-    }
-    class Memento {
-        -Object state
-    }
-    class Observer {
-        <<interface>>
-        +update()
-    }
-    MilvusAPI o--> IConnectAPI
-    MilvusAPI o--> ICollectionAPI
-    MilvusAPI o--> IVectorAPI
-    MilvusAPI o--> ISearchAPI
-    MilvusAPI o--> IIndexAPI
-    MilvusAPI o--> IPartitionAPI
-    MilvusAPI o--> IStatAPI
-    MilvusAPI o--> IMonitorAPI
-    MilvusAPI o--> IEmbeddingAPI
-    MilvusAPI o--> IAdminAPI
-    MilvusAPI o--> IDataImportAPI
-    ConnectAPI ..|> IConnectAPI
-    CollectionAPI ..|> ICollectionAPI
-    VectorAPI ..|> IVectorAPI
-    SearchAPI ..|> ISearchAPI
-    IndexAPI ..|> IIndexAPI
-    PartitionAPI ..|> IPartitionAPI
-    StatAPI ..|> IStatAPI
-    MonitorAPI ..|> IMonitorAPI
-    EmbeddingAPI ..|> IEmbeddingAPI
-    AdminAPI ..|> IAdminAPI
-    DataImportAPI ..|> IDataImportAPI
-    InsertStrategy ..|> Strategy
-    SearchStrategy ..|> Strategy
-    InsertCommand ..|> Command
-    InsertOperation ..|> Operation
-    CollectionPrototype ..|> Prototype
-    CollectionComposite ..|> Component
-    LoadedState ..|> State
-    CollectionFactory ..|> CollectionSchemaBuilder
-    CollectionSchemaBuilder ..|> CollectionFactory
-    CollectionComposite ..|> Component
-    CollectionComposite ..|> Visitor
-    CollectionComposite ..|> Mediator
-    CollectionComposite ..|> Handler
-    CollectionComposite ..|> Proxy
-    CollectionComposite ..|> FlyweightFactory
-    CollectionComposite ..|> BridgeImplementor
-    CollectionComposite ..|> Interpreter
-    CollectionComposite ..|> Memento
-    CollectionComposite ..|> Observer
-    ConfigManager ..|> SecurityManager
-    ConfigManager ..|> CollectionFactory
-    ConfigManager ..|> CollectionSchemaBuilder
-    ConfigManager ..|> CollectionComposite
-    ConfigManager ..|> Visitor
-    ConfigManager ..|> State
-    ConfigManager ..|> Mediator
-    ConfigManager ..|> Handler
-    ConfigManager ..|> Proxy
-    ConfigManager ..|> FlyweightFactory
-    ConfigManager ..|> BridgeImplementor
-    ConfigManager ..|> Interpreter
-    ConfigManager ..|> Memento
-    ConfigManager ..|> Observer
-    SecurityManager ..|> CollectionFactory
-    SecurityManager ..|> CollectionSchemaBuilder
-    SecurityManager ..|> CollectionComposite
-    SecurityManager ..|> Visitor
-    SecurityManager ..|> State
-    SecurityManager ..|> Mediator
-    SecurityManager ..|> Handler
-    SecurityManager ..|> Proxy
-    SecurityManager ..|> FlyweightFactory
-    SecurityManager ..|> BridgeImplementor
-    SecurityManager ..|> Interpreter
-    SecurityManager ..|> Memento
-    SecurityManager ..|> Observer
-    CollectionFactory ..|> CollectionSchemaBuilder
-    CollectionFactory ..|> CollectionComposite
-    CollectionFactory ..|> Visitor
-    CollectionFactory ..|> State
-    CollectionFactory ..|> Mediator
-    CollectionFactory ..|> Handler
-    CollectionFactory ..|> Proxy
-    CollectionFactory ..|> FlyweightFactory
-    CollectionFactory ..|> BridgeImplementor
-    CollectionFactory ..|> Interpreter
-    CollectionFactory ..|> Memento
-    CollectionFactory ..|> Observer
-    CollectionSchemaBuilder ..|> CollectionComposite
-    CollectionSchemaBuilder ..|> Visitor
-    CollectionSchemaBuilder ..|> State
-    CollectionSchemaBuilder ..|> Mediator
-    CollectionSchemaBuilder ..|> Handler
-    CollectionSchemaBuilder ..|> Proxy
-    CollectionSchemaBuilder ..|> FlyweightFactory
-    CollectionSchemaBuilder ..|> BridgeImplementor
-    CollectionSchemaBuilder ..|> Interpreter
-    CollectionSchemaBuilder ..|> Memento
-    CollectionSchemaBuilder ..|> Observer
-    CollectionComposite ..|> Visitor
-    CollectionComposite ..|> State
-    CollectionComposite ..|> Mediator
-    CollectionComposite ..|> Handler
-    CollectionComposite ..|> Proxy
-    CollectionComposite ..|> FlyweightFactory
-    CollectionComposite ..|> BridgeImplementor
-    CollectionComposite ..|> Interpreter
-    CollectionComposite ..|> Memento
-    CollectionComposite ..|> Observer
-    Visitor ..|> State
-    Visitor ..|> Mediator
-    Visitor ..|> Handler
-    Visitor ..|> Proxy
-    Visitor ..|> FlyweightFactory
-    Visitor ..|> BridgeImplementor
-    Visitor ..|> Interpreter
-    Visitor ..|> Memento
-    Visitor ..|> Observer
-    State ..|> Mediator
-    State ..|> Handler
-    State ..|> Proxy
-    State ..|> FlyweightFactory
-    State ..|> BridgeImplementor
-    State ..|> Interpreter
-    State ..|> Memento
-    State ..|> Observer
-    Mediator ..|> Handler
-    Mediator ..|> Proxy
-    Mediator ..|> FlyweightFactory
-    Mediator ..|> BridgeImplementor
-    Mediator ..|> Interpreter
-    Mediator ..|> Memento
-    Mediator ..|> Observer
-    Handler ..|> Proxy
-    Handler ..|> FlyweightFactory
-    Handler ..|> BridgeImplementor
-    Handler ..|> Interpreter
-    Handler ..|> Memento
-    Handler ..|> Observer
-    Proxy ..|> FlyweightFactory
-    Proxy ..|> BridgeImplementor
-    Proxy ..|> Interpreter
-    Proxy ..|> Memento
-    Proxy ..|> Observer
-    FlyweightFactory ..|> BridgeImplementor
-    FlyweightFactory ..|> Interpreter
-    FlyweightFactory ..|> Memento
-    FlyweightFactory ..|> Observer
-    BridgeImplementor ..|> Interpreter
-    BridgeImplementor ..|> Memento
-    BridgeImplementor ..|> Observer
-    Interpreter ..|> Memento
-    Interpreter ..|> Observer
-    Memento ..|> Observer
-```
+## Component Breakdown
 
----
+### Milvus
+
+**Description**: Milvus is an open-source vector database designed for storing, indexing, and searching high-dimensional vectors. It supports similarity search and analytics, making it suitable for AI-driven applications.
+
+**Use Case**: Milvus is used in scenarios requiring fast similarity search, such as image or video retrieval, recommendation systems, and semantic search in NLP.
+
+**Pros**:
+- High performance for vector similarity search.
+- Supports multiple index types (e.g., IVF, HNSW).
+- Scalable with distributed architecture.
+
+**Cons**:
+- Complex setup for distributed clusters.
+- Requires tuning for optimal performance.
+- Dependency on external storage and messaging systems.
+
+**Cluster Rationale**: A cluster implementation enhances Milvus’s scalability and fault tolerance, distributing workloads across multiple nodes (e.g., query nodes, index nodes) to handle large datasets and high query rates.
+
+### etcd
+
+**Description**: etcd is a distributed key-value store used for storing metadata and configuration data in distributed systems. It ensures consistency and reliability through a consensus protocol.
+
+**Use Case**: In this setup, etcd stores Milvus’s metadata, such as collection schemas and partition information.
+
+**Pros**:
+- Strong consistency guarantees.
+- High availability with clustering.
+- Simple API for key-value operations.
+
+**Cons**:
+- Resource-intensive for large clusters.
+- Requires careful monitoring to prevent bottlenecks.
+- Setup complexity for secure configurations.
+
+**Cluster Rationale**: A three-node etcd cluster ensures high availability and fault tolerance, critical for maintaining Milvus metadata integrity in production environments.
+
+### MinIO
+
+**Description**: MinIO is an S3-compatible object storage system designed for high-performance data storage. It supports distributed deployments for scalability.
+
+**Use Case**: MinIO stores Milvus’s vector data and indexes, providing persistent storage for large datasets.
+
+**Pros**:
+- S3 compatibility simplifies integration.
+- High throughput for large-scale data.
+- Distributed mode enhances reliability.
+
+**Cons**:
+- Requires significant disk space for large datasets.
+- Configuration complexity for distributed setups.
+- Monitoring needed to ensure performance.
+
+**Cluster Rationale**: A distributed MinIO cluster provides fault tolerance and load balancing, essential for handling Milvus’s large-scale vector storage needs.
+
+### Grafana
+
+**Description**: Grafana is an open-source platform for visualizing and analyzing metrics through dashboards. It integrates with data sources like Prometheus.
+
+**Use Case**: Grafana visualizes metrics from Milvus, etcd, MinIO, and Pulsar, aiding in performance monitoring and troubleshooting.
+
+**Pros**:
+- Customizable dashboards for real-time insights.
+- Supports multiple data sources.
+- User-friendly interface.
+
+**Cons**:
+- Requires setup of data sources and dashboards.
+- Resource usage increases with complex queries.
+- Learning curve for advanced features.
+
+**Cluster Rationale**: Grafana’s integration with Prometheus in a cluster ensures centralized monitoring, critical for managing a distributed system’s health.
+
+### Prometheus
+
+**Description**: Prometheus is an open-source monitoring system for collecting and querying time-series metrics. It uses a pull-based model to scrape metrics from services.
+
+**Use Case**: Prometheus collects metrics from Milvus, etcd, MinIO, and Pulsar, enabling performance analysis and alerting.
+
+**Pros**:
+- Efficient time-series data storage.
+- Powerful query language (PromQL).
+- Scalable with federation.
+
+**Cons**:
+- High memory usage for large datasets.
+- Requires configuration for long-term storage.
+- Alerting setup can be complex.
+
+**Cluster Rationale**: Prometheus ensures comprehensive monitoring of the cluster, enabling proactive issue detection in a distributed environment.
+
+### Pulsar
+
+**Description**: Apache Pulsar is a distributed messaging and streaming platform that supports pub-sub and queue-based messaging. It is designed for high throughput and low latency.
+
+**Use Case**: Pulsar handles Milvus’s message queues for data ingestion and coordination between components.
+
+**Pros**:
+- High throughput and low latency.
+- Scalable with a multi-layered architecture.
+- Supports multi-tenancy.
+
+**Cons**:
+- Complex setup with ZooKeeper and BookKeeper.
+- Resource-intensive for large clusters.
+- Monitoring required for optimal performance.
+
+**Cluster Rationale**: A Pulsar cluster with ZooKeeper, BookKeeper, brokers, and proxies ensures reliable messaging for Milvus’s distributed operations, supporting high-throughput data pipelines.
+
+### HAProxy
+
+**Description**: HAProxy is a high-performance load balancer that distributes traffic across multiple backend services. It supports TCP and HTTP protocols.
+
+**Use Case**: HAProxy routes traffic to etcd, MinIO, and Pulsar, ensuring load balancing and fault tolerance.
+
+**Pros**:
+- High performance and reliability.
+- Flexible configuration for routing.
+- Supports health checks for backend services.
+
+**Cons**:
+- Configuration complexity for advanced setups.
+- Single point of failure if not clustered.
+- Requires monitoring to prevent overload.
+
+**Cluster Rationale**: HAProxy simplifies access to distributed services, enhancing reliability and performance in the Milvus cluster.
+
+### Why Cluster Implementation
+
+A cluster implementation is optimal for this setup because:
+- **Scalability**: Distributes workloads across multiple nodes, handling large datasets and high query volumes.
+- **Fault Tolerance**: Redundant nodes (e.g., three-node etcd, MinIO, Pulsar) ensure continuity during failures.
+- **Performance**: Load balancing via HAProxy and distributed processing in Milvus and Pulsar improve throughput.
+- **Observability**: Prometheus and Grafana provide centralized monitoring, critical for managing complex systems.
+- **Reliability**: Persistent storage (MinIO) and consistent metadata (etcd) ensure data integrity.
+
+This approach is ideal for production environments requiring robust, scalable vector search capabilities.
+
+## Cluster Architecture Diagram
+
+The following Mermaid diagram illustrates the Milvus cluster architecture, showing interactions between components and network boundaries.
 
 ```mermaid
 graph TD
-  subgraph Networks
-    network1["Network: default"]
-    network2["Network: custom_network"]
-  end
+    %% Define subgraphs for logical grouping
+    subgraph External_Access["External Access (external-network)"]
+        GUI["Milvus GUI<br>(Port: 3300)"] -->|HTTP:19530| Proxy["Proxy<br>(Port: 19530, 9091)"]
+        NodeExporter["Node Exporter<br>(Port: 9100)"] -->|Metrics| Prometheus
+        Grafana["Grafana<br>(Port: 3000)"] -->|Queries| Prometheus
+        Prometheus["Prometheus<br>(Port: 9090)"]
+    end
 
-  subgraph Services
-    service1["Service: etcd"]
-    service2["Service: milvus_proxy"]
-    service3["Service: milvus_indexnode"]
-    service4["Service: milvus_querynode"]
-    service5["Service: milvus_datanode"]
-    service6["Service: milvus_rootcoord"]
-    service7["Service: milvus_etcd"]
-    service8["Service: milvus_minio"]
-    service9["Service: milvus_pulsar"]
-  end
+    subgraph Milvus_Cluster["Milvus Cluster (milvus network)"]
+        Proxy -->|Coordinates| RootCoord["RootCoord"]
+        Proxy -->|Queries| QueryCoord["QueryCoord"]
+        Proxy -->|Indexing| IndexCoord["IndexCoord"]
+        Proxy -->|Data| DataCoord["DataCoord"]
+        
+        QueryCoord --> QueryNodes["Query Nodes<br>(querynode-1,2,3)"]
+        IndexCoord --> IndexNodes["Index Nodes<br>(indexnode-1,2,3)"]
+        DataCoord --> DataNodes["Data Nodes<br>(datanode-1,2,3)"]
+    end
 
-  %% Service to Network Connections
-  service1 --- network1
-  service2 --- network1
-  service3 --- network1
-  service4 --- network1
-  service5 --- network1
-  service6 --- network1
-  service7 --- network1
-  service8 --- network2
-  service9 --- network2
+    subgraph External_Services["External Services"]
+        subgraph HAProxy_Network["HAProxy (multiple networks)"]
+            HAProxy["HAProxy<br>(Ports: 2379, 9000, 6650, 8080)"]
+        end
+        
+        subgraph Etcd_Cluster["etcd Cluster (etcd-network)"]
+            Etcd["etcd0, etcd1, etcd2<br>(Port: 2379)"]
+        end
+        
+        subgraph MinIO_Cluster["MinIO Cluster (minio-network)"]
+            MinIO["minio0, minio1, minio2<br>(Port: 9000)"]
+        end
+        
+        subgraph Pulsar_Cluster["Pulsar Cluster (pulsar-network)"]
+            PulsarProxy["pulsar-proxy<br>(Port: 6650, 8080)"] --> PulsarProxies["Proxies<br>(proxy1,2,3)"]
+            PulsarProxies --> Brokers["Brokers<br>(broker1,2,3)"]
+            Brokers --> Bookies["Bookies<br>(bookie1,2,3)"]
+            Bookies --> ZooKeeper["ZooKeeper<br>(zookeeper1,2,3)"]
+        end
+    end
 
-  %% Service Interactions
-  service2 -->|API Requests| service6
-  service3 -->|Indexing| service6
-  service4 -->|Query Execution| service6
-  service5 -->|Data Storage| service6
-  service6 -->|Metadata| service7
-  service6 -->|Object Storage| service8
-  service6 -->|Message Queue| service9
+    %% Define interactions
+    Proxy -->|etcd:2379| HAProxy
+    Proxy -->|MinIO:9000| HAProxy
+    Proxy -->|Pulsar:6650| HAProxy
+    
+    RootCoord -->|etcd:2379| HAProxy
+    RootCoord -->|MinIO:9000| HAProxy
+    RootCoord -->|Pulsar:6650| HAProxy
+    
+    QueryCoord -->|Depends| HAProxy
+    IndexCoord -->|Depends| HAProxy
+    DataCoord -->|Depends| HAProxy
+    
+    HAProxy -->|Routes to etcd:2379| Etcd
+    HAProxy -->|Routes to MinIO:9000| MinIO
+    HAProxy -->|Routes to Pulsar:6650,8080| PulsarProxy
+
+    %% Styling for clarity
+    classDef milvus fill:#d4f4dd,stroke:#2e7d32;
+    classDef external fill:#bbdefb,stroke:#1565c0;
+    classDef storage fill:#fff3e0,stroke:#ef6c00;
+    classDef messaging fill:#fce4ec,stroke:#ad1457;
+    classDef proxy fill:#f3e5f5,stroke:#6a1b9a;
+    
+    class Milvus_Cluster milvus;
+    class External_Access external;
+    class Etcd_Cluster,MinIO_Cluster storage;
+    class Pulsar_Cluster messaging;
+    class HAProxy_Network proxy;
 ```
 
+## Testing the Milvus Cluster
 
+Below are 10 well-documented tests and examples to verify the Milvus cluster’s functionality. These tests assume the cluster is running via Docker Compose.
+
+### Test 1: Verify Milvus Proxy Health
+**Purpose**: Ensure the Milvus proxy is running and healthy.
+**Command**:
+```bash
+curl -f http://localhost:9091/healthz
+```
+**Expected Output**: HTTP 200 OK response.
+**Notes**: Run this on the host machine. A failure indicates issues with the proxy or dependencies.
+
+### Test 2: Connect to Milvus GUI
+**Purpose**: Verify the Milvus GUI is accessible.
+**Steps**:
+1. Open a browser and navigate to `http://localhost:3300`.
+2. Log in with default credentials (if unchanged).
+**Expected Output**: Milvus GUI dashboard loads.
+**Notes**: Ensure the proxy is healthy before testing.
+
+### Test 3: Create a Collection
+**Purpose**: Test collection creation in Milvus.
+**Code** (Python using `pymilvus`):
+```python
+from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType
+
+connections.connect(host='localhost', port='19530')
+fields = [
+    FieldSchema(name="id", dtype=DataType.INT64, is_primary=True),
+    FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=8)
+]
+schema = CollectionSchema(fields, description="Test collection")
+collection = Collection("test_collection", schema)
+```
+**Expected Output**: Collection created successfully.
+**Notes**: Install `pymilvus` via `pip install pymilvus`.
+
+### Test 4: Insert Vectors
+**Purpose**: Test vector insertion into a collection.
+**Code** (Python):
+```python
+import numpy as np
+from pymilvus import Collection
+
+collection = Collection("test_collection")
+data = [
+    [i for i in range(10)],  # IDs
+    [np.random.rand(8).tolist() for _ in range(10)]  # Vectors
+]
+collection.insert(data)
+```
+**Expected Output**: Vectors inserted successfully.
+**Notes**: Ensure the collection exists.
+
+### Test 5: Search Vectors
+**Purpose**: Test vector similarity search.
+**Code** (Python):
+```python
+from pymilvus import Collection
+
+collection = Collection("test_collection")
+collection.load()
+query_vectors = [np.random.rand(8).tolist()]
+results = collection.search(
+    data=query_vectors,
+    anns_field="embedding",
+    param={"metric_type": "L2", "params": {"nprobe": 10}},
+    limit=5
+)
+print(results)
+```
+**Expected Output**: List of closest vectors with distances.
+**Notes**: Adjust `metric_type` based on use case.
+
+### Test 6: Verify etcd Cluster Health
+**Purpose**: Ensure the etcd cluster is operational.
+**Command**:
+```bash
+docker exec etcd0 etcdctl --endpoints=http://etcd0:2379,http://etcd1:2379,http://etcd2:2379 endpoint health
+```
+**Expected Output**: All endpoints report `healthy`.
+**Notes**: Run from the host with Docker installed.
+
+### Test 7: Check MinIO Health
+**Purpose**: Verify MinIO cluster health.
+**Command**:
+```bash
+curl -I http://localhost:9000/minio/health/live
+```
+**Expected Output**: HTTP 200 OK response.
+**Notes**: Run on the host machine.
+
+### Test 8: Validate Pulsar Cluster
+**Purpose**: Ensure Pulsar cluster is functional.
+**Command**:
+```bash
+docker exec pulsar-init pulsar-admin clusters list
+```
+**Expected Output**: Lists `cluster-a` as active.
+**Notes**: Requires `pulsar-admin` installed in the container.
+
+### Test 9: Monitor Metrics with Prometheus
+**Purpose**: Verify Prometheus is collecting metrics.
+**Steps**:
+1. Open `http://localhost:9090` in a browser.
+2. Query `milvus_proxy_request_total` in the Prometheus UI.
+**Expected Output**: Displays request metrics for Milvus proxy.
+**Notes**: Ensure Prometheus is running.
+
+### Test 10: Visualize Metrics in Grafana
+**Purpose**: Confirm Grafana displays cluster metrics.
+**Steps**:
+1. Navigate to `http://localhost:3000`.
+2. Log in with `admin`/`WW91ckdyYWZhbmFTdHJvbmdQYXNzd29yZDEyMw`.
+3. Add Prometheus as a data source (URL: `http://prometheus:9090`).
+4. Create a dashboard for `milvus_proxy_request_total`.
+**Expected Output**: Dashboard shows Milvus metrics.
+**Notes**: Configure dashboards for specific metrics.
+
+## Best Practices
+
+1. **Secure Credentials**: Replace default passwords (e.g., MinIO, Grafana) with strong, unique values in production.
+2. **Resource Allocation**: Adjust CPU and memory limits in Docker Compose based on workload and hardware capacity.
+3. **Monitoring**: Configure Prometheus alerts for critical metrics (e.g., etcd latency, MinIO disk usage).
+4. **Backups**: Regularly back up etcd snapshots and MinIO data to prevent data loss.
+5. **Network Isolation**: Use internal networks for services (e.g., etcd, MinIO) to reduce exposure.
+6. **Health Checks**: Enable and monitor health checks for all services to detect failures early.
+7. **Logging**: Configure centralized logging for all services to simplify troubleshooting.
+8. **Scaling**: Add nodes to Milvus query, index, or data layers as needed for performance.
+9. **Documentation**: Maintain updated documentation for cluster configuration and procedures.
+10. **Testing**: Regularly run the above tests to ensure cluster stability.
+
+## Definitions
+
+- **Vector Database**: A database optimized for storing and querying high-dimensional vectors, used in AI for similarity search.
+- **Key-Value Store**: A simple database that stores data as key-value pairs, used for configuration and metadata.
+- **Object Storage**: A storage system for unstructured data (e.g., files, images), optimized for scalability.
+- **Pub-Sub Messaging**: A messaging pattern where publishers send messages to topics, and subscribers receive them.
+- **Load Balancer**: A system that distributes network traffic across multiple servers to improve performance and reliability.
+- **Time-Series Metrics**: Data points collected over time, used for monitoring system performance.
+- **Cluster**: A group of servers working together to provide scalability and fault tolerance.
+- **Docker Compose**: A tool for defining and running multi-container Docker applications.
+- **Mermaid Diagram**: A text-based diagramming tool for creating flowcharts and architecture diagrams.
+- **S3-Compatible**: A storage system that supports Amazon S3’s API for object storage.
+
+## Conclusion
+
+The Milvus cluster implementation provides a robust, scalable solution for vector similarity search, leveraging etcd, MinIO, Pulsar, HAProxy, Prometheus, and Grafana for metadata, storage, messaging, load balancing, and monitoring. The cluster architecture ensures high availability and performance, making it suitable for production-grade AI applications. By following the provided tests and best practices, one can maintain a reliable and efficient system. This setup exemplifies modern distributed systems design, balancing complexity with functionality.

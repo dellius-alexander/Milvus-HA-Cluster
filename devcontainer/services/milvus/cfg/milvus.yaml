@@ -184,7 +184,7 @@ pulsar:
   # pulsar.address and pulsar.port together generate the valid access to Pulsar.
   # Pulsar preferentially acquires the valid IP address from the environment variable PULSAR_ADDRESS when Milvus is started.
   # Default value applies when Pulsar is running on the same network with Milvus.
-  address: haproxy
+  address: pulsar://pulsar-proxy
   port: 6650 # Port of Pulsar service.
   webport: 80 # Web port of of Pulsar service. If you connect direcly without proxy, should use 8080.
   # The maximum size of each message in Pulsar. Unit: Byte.

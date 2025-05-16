@@ -1,0 +1,45 @@
+####################################################################
+# Define networks for service communication
+networks:
+  pulsar:
+    name: pulsar
+#    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+####################################################################
+# Define persistent volumes for data durability
+volumes:
+  pulsar_data:
+    name: pulsar_data
+#########################################################################
+services:
+  # Standalone Pulsar Service
+  pulsar:
+    container_name: pulsar-standalone
+    hostname: pulsar-standalone
+    image: apachepulsar/pulsar:4.0.4
+    volumes:
+      - pulsar_data:/pulsar/data
+    environment:
+      # bin/apply-config-from-env.py script will modify the configuration file based on the environment variables
+      # nettyMaxFrameSizeBytes must be calculated from maxMessageSize + 10240 (padding)
+      - nettyMaxFrameSizeBytes=104867840 # this is 104857600 + 10240 (padding)
+      - defaultRetentionTimeInMinutes=10080
+      - defaultRetentionSizeInMB=8192
+      # maxMessageSize is missing from standalone.conf, must use PULSAR_PREFIX_ to get it configured
+      - PULSAR_PREFIX_maxMessageSize=104857600
+      - PULSAR_GC=-XX:+UseG1GC
+    restart: always
+    command: |
+      /bin/bash -c \
+      "bin/apply-config-from-env.py conf/standalone.conf && \
+      exec bin/pulsar standalone --no-functions-worker --no-stream-storage"
+    networks:
+      - pulsar
+    healthcheck:
+      test: [ "CMD", "bin/pulsar-admin", "brokers", "healthcheck" ]
+      start_period: 60s
+      interval: 30s
+      timeout: 20s
+      retries: 5
