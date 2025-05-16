@@ -1,9 +1,7 @@
 FROM apachepulsar/pulsar:4.0.4
+ARG NODE_TYPE=""
 ARG ADVERTISED_ADDRESS=""
 ARG BOOKIEID=""
-
-ENV ADVERTISED_ADDRESS=${ADVERTISED_ADDRESS}
-ENV BOOKIEID=${BOOKIEID}
 
 # Metadata for the image
 LABEL maintainer="Dellius Alexander admin@hyfisolutions.com"
@@ -14,30 +12,38 @@ RUN OLDUSER=$(id -u)
 USER root
 
 # Copy all config files
-COPY cfg/bookkeeper.conf /pulsar/conf/bookkeeper.conf
-RUN sed -i "s|\${BOOKIEID}|${BOOKIEID}|g" /pulsar/conf/bookkeeper.conf
-RUN sed -i "s|\${ADVERTISED_ADDRESS}|${ADVERTISED_ADDRESS}|g" /pulsar/conf/bookkeeper.conf
+COPY cfg/${NODE_TYPE}.conf /pulsar/conf/${NODE_TYPE}.conf
 
-# Create BookKeeper data directories and set ownership
-RUN mkdir -p /pulsar/data/bookkeeper && \
-    chown -R ${OLDUSER}:${OLDUSER} /pulsar/data/bookkeeper && \
-    chown -R ${OLDUSER}:${OLDUSER} /pulsar/conf/bookkeeper.conf
+# Apply environment configuration to "bookkeeper.conf"
+RUN if [ "${NODE_TYPE}" == "bookkeeper" ]; then \
+    sed -i "s|\${BOOKIEID}|${BOOKIEID}|g" /pulsar/conf/${NODE_TYPE}.conf; \
+    sed -i "s|\${ADVERTISED_ADDRESS}|${ADVERTISED_ADDRESS}|g" /pulsar/conf/${NODE_TYPE}.conf; \
+    # Create node data directories and set ownership
+    mkdir -p /pulsar/data/${NODE_TYPE} && \
+    chown -R ${OLDUSER}:${OLDUSER} /pulsar/data/${NODE_TYPE}; \
+    fi
 
-# Copy entrypoint script
-COPY scripts/bookkeeper.sh /pulsar/entrypoint.sh
-RUN chmod +x /pulsar/entrypoint.sh
+# Apply environment configuration to "zookeeper" node
+RUN if [ "${NODE_TYPE}" == "zookeeper" ]; then \
+    mkdir -p "/pulsar/data/zookeeper/version-2"; \
+        # Create node data directories and set ownership
+    mkdir -p /pulsar/data/${NODE_TYPE} && \
+    chown -R ${OLDUSER}:${OLDUSER} /pulsar/data/${NODE_TYPE}; \
+    fi
+
+# Apply environment configuration to "broker" node
+RUN if [ "${NODE_TYPE}" == "broker" ]; then \
+    sed -i "s|\${ADVERTISED_ADDRESS}|${ADVERTISED_ADDRESS}|g" /pulsar/conf/${NODE_TYPE}.conf; \
+    fi
+
+# Apply permissions to configuration file
+RUN chown -R ${OLDUSER}:${OLDUSER} /pulsar/conf/${NODE_TYPE}.conf
 
 # Set working directory
 WORKDIR /pulsar
 
-# Expose BookKeeper ports
-EXPOSE 3181 8000
-
 # Change back to pulsar user
 USER ${OLDUSER}
-
-#Define entrypoint
-ENTRYPOINT ["/pulsar/entrypoint.sh"]
 
 #Purpose:
 #

@@ -3,7 +3,7 @@
 networks:
   pulsar:
     name: pulsar
-    internal: true
+#    internal: true
     driver: bridge
     ipam:
       driver: default
@@ -31,7 +31,9 @@ services:
   zookeeper1:
     build:
       context: .
-      dockerfile: zookeeper.Dockerfile
+      dockerfile: base.Dockerfile
+      args:
+        - NODE_TYPE=zookeeper
 #    image: apachepulsar/pulsar:latest
     container_name: zookeeper1
     hostname: zookeeper1
@@ -49,6 +51,10 @@ services:
       - "2181"  # Client port
       - "2888"  # Server-to-server (leader-follower)
       - "3888"  # Server-to-server (leader election)
+    command: [ "/bin/bash", "-c", "echo $${SERVERID} > /pulsar/data/zookeeper/myid && \
+              chmod 644 /pulsar/data/zookeeper/myid && \
+              /pulsar/bin/apply-config-from-env.py /pulsar/conf/zookeeper.conf && \
+              exec bin/pulsar zookeeper" ]
     healthcheck:
       test: ["CMD", "bin/pulsar-zookeeper-ruok.sh"]
       interval: 60s
@@ -58,7 +64,9 @@ services:
   zookeeper2:
     build:
       context: .
-      dockerfile: zookeeper.Dockerfile
+      dockerfile: base.Dockerfile
+      args:
+        - NODE_TYPE=zookeeper
 #    image: apachepulsar/pulsar:latest
     container_name: zookeeper2
     hostname: zookeeper2
@@ -76,6 +84,10 @@ services:
       - "2181"  # Client port
       - "2888"  # Server-to-server (leader-follower)
       - "3888"  # Server-to-server (leader election)
+    command: [ "/bin/bash", "-c", "echo $${SERVERID} > /pulsar/data/zookeeper/myid && \
+                  chmod 644 /pulsar/data/zookeeper/myid && \
+                  /pulsar/bin/apply-config-from-env.py /pulsar/conf/zookeeper.conf && \
+                  exec bin/pulsar zookeeper" ]
     healthcheck:
       test: ["CMD", "bin/pulsar-zookeeper-ruok.sh"]
       interval: 60s
@@ -85,7 +97,9 @@ services:
   zookeeper3:
     build:
       context: .
-      dockerfile: zookeeper.Dockerfile
+      dockerfile: base.Dockerfile
+      args:
+        - NODE_TYPE=zookeeper
 #    image: apachepulsar/pulsar:latest
     container_name: zookeeper3
     hostname: zookeeper3
@@ -103,6 +117,10 @@ services:
       - "2181"  # Client port
       - "2888"  # Server-to-server (leader-follower)
       - "3888"  # Server-to-server (leader election)
+    command: [ "/bin/bash", "-c", "echo $${SERVERID} > /pulsar/data/zookeeper/myid && \
+                  chmod 644 /pulsar/data/zookeeper/myid && \
+                  /pulsar/bin/apply-config-from-env.py /pulsar/conf/zookeeper.conf && \
+                  exec bin/pulsar zookeeper" ]
     healthcheck:
       test: ["CMD", "bin/pulsar-zookeeper-ruok.sh"]
       interval: 60s
@@ -135,10 +153,11 @@ services:
   bookie1:
     build:
       context: .
-      dockerfile: bookie.Dockerfile
+      dockerfile: base.Dockerfile
       args:
         - ADVERTISED_ADDRESS=bookie1
         - BOOKIEID=bookie1:3181
+        - NODE_TYPE=bookkeeper
 #    image: apachepulsar/pulsar:latest
     container_name: bookie1
     hostname: bookie1
@@ -149,9 +168,13 @@ services:
     environment:
       - ADVERTISED_ADDRESS=bookie1
       - BOOKIEID=bookie1:3181
-      - BOOKIE_MEM=-Xms1g -Xmx1g -XX:MaxDirectMemorySize=256m
+#      - BOOKIE_MEM=-Xms1g -Xmx1g -XX:MaxDirectMemorySize=256m
     expose:
       - "3181"  # Bookie server port
+    volumes:
+      - bookkeeper_data1:/pulsar/data/bookkeeper
+    command: [ "/bin/bash", "-c", "bin/apply-config-from-env.py conf/bookkeeper.conf && \
+              exec bin/pulsar bookie" ]
     depends_on:
       zookeeper1:
         condition: service_healthy
@@ -161,16 +184,16 @@ services:
         condition: service_healthy
       pulsar-init:
         condition: service_completed_successfully
-    volumes:
-      - bookkeeper_data1:/pulsar/data/bookkeeper
+
 
   bookie2:
     build:
       context: .
-      dockerfile: bookie.Dockerfile
+      dockerfile: base.Dockerfile
       args:
         - ADVERTISED_ADDRESS=bookie2
         - BOOKIEID=bookie2:3181
+        - NODE_TYPE=bookkeeper
 #    image: apachepulsar/pulsar:latest
     container_name: bookie2
     hostname: bookie2
@@ -181,9 +204,13 @@ services:
     environment:
       - ADVERTISED_ADDRESS=bookie2
       - BOOKIEID=bookie2:3181
-      - BOOKIE_MEM=-Xms1g -Xmx1g -XX:MaxDirectMemorySize=256m
+#      - BOOKIE_MEM=-Xms1g -Xmx1g -XX:MaxDirectMemorySize=256m
     expose:
       - "3181"  # Bookie server port
+    volumes:
+      - bookkeeper_data2:/pulsar/data/bookkeeper
+    command: [ "/bin/bash", "-c", "bin/apply-config-from-env.py conf/bookkeeper.conf && \
+              exec bin/pulsar bookie" ]
     depends_on:
       zookeeper1:
         condition: service_healthy
@@ -193,16 +220,15 @@ services:
         condition: service_healthy
       pulsar-init:
         condition: service_completed_successfully
-    volumes:
-      - bookkeeper_data2:/pulsar/data/bookkeeper
 
   bookie3:
     build:
       context: .
-      dockerfile: bookie.Dockerfile
+      dockerfile: base.Dockerfile
       args:
         - ADVERTISED_ADDRESS=bookie3
         - BOOKIEID=bookie3:3181
+        - NODE_TYPE=bookkeeper
 #    image: apachepulsar/pulsar:latest
     container_name: bookie3
     hostname: bookie3
@@ -213,9 +239,13 @@ services:
     environment:
       - ADVERTISED_ADDRESS=bookie3
       - BOOKIEID=bookie3:3181
-      - BOOKIE_MEM=-Xms1g -Xmx1g -XX:MaxDirectMemorySize=256m
+#      - BOOKIE_MEM=-Xms1g -Xmx1g -XX:MaxDirectMemorySize=256m
     expose:
       - "3181"  # Bookie server port
+    volumes:
+      - bookkeeper_data3:/pulsar/data/bookkeeper
+    command: [ "/bin/bash", "-c", "bin/apply-config-from-env.py conf/bookkeeper.conf && \
+              exec bin/pulsar bookie" ]
     depends_on:
       zookeeper1:
         condition: service_healthy
@@ -225,16 +255,15 @@ services:
         condition: service_healthy
       pulsar-init:
         condition: service_completed_successfully
-    volumes:
-      - bookkeeper_data3:/pulsar/data/bookkeeper
 
   # Brokers (3 nodes)
   broker1:
     build:
       context: .
-      dockerfile: broker.Dockerfile
+      dockerfile: base.Dockerfile
       args:
         - ADVERTISED_ADDRESS=broker1
+        - NODE_TYPE=broker
 #    image: apachepulsar/pulsar:latest
     container_name: broker1
     hostname: broker1
@@ -248,6 +277,8 @@ services:
     expose:
       - "6650"  # Pulsar binary protocol
       - "8080"  # HTTP admin API
+    command: [ "/bin/bash", "-c", "/pulsar/bin/apply-config-from-env.py /pulsar/conf/broker.conf && \
+              exec bin/pulsar broker" ]
     depends_on:
       zookeeper1:
         condition: service_healthy
@@ -265,9 +296,10 @@ services:
   broker2:
     build:
       context: .
-      dockerfile: broker.Dockerfile
+      dockerfile: base.Dockerfile
       args:
         - ADVERTISED_ADDRESS=broker2
+        - NODE_TYPE=broker
 #    image: apachepulsar/pulsar:latest
     container_name: broker2
     hostname: broker2
@@ -281,6 +313,8 @@ services:
     expose:
       - "6650"  # Pulsar binary protocol
       - "8080"  # HTTP admin API
+    command: [ "/bin/bash", "-c", "/pulsar/bin/apply-config-from-env.py /pulsar/conf/broker.conf && \
+              exec bin/pulsar broker" ]
     depends_on:
       zookeeper1:
         condition: service_healthy
@@ -298,9 +332,10 @@ services:
   broker3:
     build:
       context: .
-      dockerfile: broker.Dockerfile
+      dockerfile: base.Dockerfile
       args:
         - ADVERTISED_ADDRESS=broker3
+        - NODE_TYPE=broker
 #    image: apachepulsar/pulsar:latest
     container_name: broker3
     hostname: broker3
@@ -314,6 +349,8 @@ services:
     expose:
       - "6650"  # Pulsar binary protocol
       - "8080"  # HTTP admin API
+    command: [ "/bin/bash", "-c", "/pulsar/bin/apply-config-from-env.py /pulsar/conf/broker.conf && \
+              exec bin/pulsar broker" ]
     depends_on:
       zookeeper1:
         condition: service_healthy
@@ -332,9 +369,10 @@ services:
   proxy1:
     build:
       context: .
-      dockerfile: proxy.Dockerfile
+      dockerfile: base.Dockerfile
       args:
         - PULSAR_MEM=-Xms1g -Xmx1g -XX:MaxDirectMemorySize=256m
+        - NODE_TYPE=proxy
     container_name: proxy1
     hostname: proxy1
     restart: on-failure
@@ -346,6 +384,8 @@ services:
     expose:
       - "6650"
       - "8080"
+    command: [ "/bin/bash", "-c", "bin/apply-config-from-env.py /pulsar/conf/proxy.conf && \
+              exec bin/pulsar proxy"]
     depends_on:
       zookeeper1:
         condition: service_healthy
@@ -363,9 +403,10 @@ services:
   proxy2:
     build:
       context: .
-      dockerfile: proxy.Dockerfile
+      dockerfile: base.Dockerfile
       args:
         - PULSAR_MEM=-Xms1g -Xmx1g -XX:MaxDirectMemorySize=256m
+        - NODE_TYPE=proxy
     container_name: proxy2
     hostname: proxy2
     restart: on-failure
@@ -377,6 +418,8 @@ services:
     expose:
       - "6650"
       - "8080"
+    command: [ "/bin/bash", "-c", "bin/apply-config-from-env.py /pulsar/conf/proxy.conf && \
+              exec bin/pulsar proxy"]
     depends_on:
       zookeeper1:
         condition: service_healthy
@@ -394,9 +437,10 @@ services:
   proxy3:
     build:
       context: .
-      dockerfile: proxy.Dockerfile
+      dockerfile: base.Dockerfile
       args:
         - PULSAR_MEM=-Xms1g -Xmx1g -XX:MaxDirectMemorySize=256m
+        - NODE_TYPE=proxy
     container_name: proxy3
     hostname: proxy3
     restart: on-failure
@@ -408,6 +452,8 @@ services:
     expose:
       - "6650"
       - "8080"
+    command: [ "/bin/bash", "-c", "bin/apply-config-from-env.py /pulsar/conf/proxy.conf && \
+              exec bin/pulsar proxy"]
     depends_on:
       zookeeper1:
         condition: service_healthy
@@ -450,7 +496,7 @@ services:
         max-size: "10m"
         max-file: "3"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://pulsar-proxy:8080/admin/v2/brokers/health"]
+      test: [ "CMD", "sh", "-c", "haproxy -v" ]
       interval: 10s
       timeout: 5s
       retries: 3
