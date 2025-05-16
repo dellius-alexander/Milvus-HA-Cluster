@@ -92,12 +92,34 @@ The cluster consists of:
 The following diagram illustrates the cluster architecture:
 
 ```mermaid
+---
+title: Apache Pulsar Cluster Architecture
+config:
+    layout: auto
+    look: neo
+    theme: neo-dark
+    themeVariables:
+        primaryColor: "#ffcc00"
+        edgeLabelBackground: "#ffffff"
+        tertiaryColor: "#ffffff"
+        nodeSpacing: 50
+        edgeLabelStyle: "font-size: 12px; font-family: Arial, sans-serif;"
+        nodeLabelStyle: "font-size: 12px; font-family: Arial, sans-serif;"
+        clusterBkgColor: "#f0f0f0"
+        clusterBorderColor: "#000000"
+        clusterBorderWidth: 2
+        clusterPadding: 10
+        clusterLabelStyle: "font-size: 14px; font-weight: bold; font-family: Arial, sans-serif;"
+---
 graph TD
     subgraph Clients
         direction LR
-        C1[Client 1]
-        C2[Client 2]
-        C3[Client 3]
+            C1["Client 1"]
+%%            C1@{ icon: "azure:machinesazurearc", pos: "b"}
+            C2["Client 2"]
+%%            C2@{ icon: "azure:machinesazurearc", pos: "b"}
+            C3["Client 3"]
+%%            C3@{ icon: "azure:machinesazurearc", pos: "b"}
     end
 
     subgraph HAProxy
@@ -106,30 +128,30 @@ graph TD
 
     subgraph Pulsar Proxies
         direction LR
-        P1[Proxy 1<br>Ports: 6650, 8080]
-        P2[Proxy 2<br>Ports: 6650, 8080]
-        P3[Proxy 3<br>Ports: 6650, 8080]
+            P1[Proxy 1<br>Ports: 6650, 8080]
+            P2[Proxy 2<br>Ports: 6650, 8080]
+            P3[Proxy 3<br>Ports: 6650, 8080]
     end
 
     subgraph Pulsar Brokers
         direction LR
-        B1[Broker 1<br>Ports: 6650, 8080]
-        B2[Broker 2<br>Ports: 6650, 8080]
-        B3[Broker 3<br>Ports: 6650, 8080]
+            B1[Broker 1<br>Ports: 6650, 8080]
+            B2[Broker 2<br>Ports: 6650, 8080]
+            B3[Broker 3<br>Ports: 6650, 8080]
     end
 
     subgraph BookKeeper
         direction LR
-        BK1[Bookie 1<br>Port: 3181]
-        BK2[Bookie 2<br>Port: 3181]
-        BK3[Bookie 3<br>Port: 3181]
+            BK1[Bookie 1<br>Port: 3181]
+            BK2[Bookie 2<br>Port: 3181]
+            BK3[Bookie 3<br>Port: 3181]
     end
 
     subgraph ZooKeeper Ensemble
         direction LR
-        ZK1[Zookeeper 1<br>Ports: 2181, 2888, 3888]
-        ZK2[Zookeeper 2<br>Ports: 2181, 2888, 3888]
-        ZK3[Zookeeper 3<br>Ports: 2181, 2888, 3888]
+            ZK1[Zookeeper 1<br>Ports: 2181, 2888, 3888]
+            ZK2[Zookeeper 2<br>Ports: 2181, 2888, 3888]
+            ZK3[Zookeeper 3<br>Ports: 2181, 2888, 3888]
     end
 
     C1 --> HP
