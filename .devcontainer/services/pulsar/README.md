@@ -94,34 +94,39 @@ The following diagram illustrates the cluster architecture:
 ```mermaid
 graph TD
     subgraph Clients
+        direction LR
         C1[Client 1]
         C2[Client 2]
         C3[Client 3]
     end
 
     subgraph HAProxy
-        HP[HAProxy<br>Ports: 6650, 8080]
+        HP[Pulsar Cluster Entrypoint<br>HAProxy<br>Ports: 6650, 8080]
     end
 
     subgraph Pulsar Proxies
+        direction LR
         P1[Proxy 1<br>Ports: 6650, 8080]
         P2[Proxy 2<br>Ports: 6650, 8080]
         P3[Proxy 3<br>Ports: 6650, 8080]
     end
 
     subgraph Pulsar Brokers
+        direction LR
         B1[Broker 1<br>Ports: 6650, 8080]
         B2[Broker 2<br>Ports: 6650, 8080]
         B3[Broker 3<br>Ports: 6650, 8080]
     end
 
     subgraph BookKeeper
+        direction LR
         BK1[Bookie 1<br>Port: 3181]
         BK2[Bookie 2<br>Port: 3181]
         BK3[Bookie 3<br>Port: 3181]
     end
 
     subgraph ZooKeeper Ensemble
+        direction LR
         ZK1[Zookeeper 1<br>Ports: 2181, 2888, 3888]
         ZK2[Zookeeper 2<br>Ports: 2181, 2888, 3888]
         ZK3[Zookeeper 3<br>Ports: 2181, 2888, 3888]
