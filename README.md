@@ -178,6 +178,13 @@ This approach is ideal for production environments requiring robust, scalable ve
 The following `Milvus Cluster Diagram` illustrates the Milvus cluster architecture, showing interactions between components and network boundaries.
 
 ```mermaid
+---
+title: Milvus Cluster Architecture
+config:
+    layout: auto
+    look: neo
+    theme: neo-dark
+---
 graph TD
     %% Define subgraphs for logical grouping
     subgraph External_Access["External Access (external-network)"]
