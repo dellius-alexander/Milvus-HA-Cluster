@@ -175,7 +175,7 @@ This approach is ideal for production environments requiring robust, scalable ve
 
 ## Cluster Architecture Diagram
 
-The following Mermaid diagram illustrates the Milvus cluster architecture, showing interactions between components and network boundaries.
+The following `Milvus Cluster Diagram` illustrates the Milvus cluster architecture, showing interactions between components and network boundaries.
 
 ```mermaid
 graph TD
