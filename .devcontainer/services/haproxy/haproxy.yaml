@@ -14,15 +14,15 @@ services:
       - "2379:2379"
       - "9000:9000"
       - "9001:9001"
-      - "8404:8404"
+      - "38404:8404"
       - "8080:8080"
       - "6650:6650"
     volumes:
       - haproxy_data:/usr/local/etc/haproxy
     depends_on:
-      minio0:
+      minio-proxy:
         condition: service_healthy
-      etcd0:
+      etcd-proxy:
         condition: service_healthy
       pulsar-proxy:
         condition: service_healthy

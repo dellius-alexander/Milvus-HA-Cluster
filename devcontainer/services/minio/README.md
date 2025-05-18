@@ -1,1 +1,0 @@
-[//]: # (TODO: Write documentation for minio service)

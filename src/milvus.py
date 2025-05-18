@@ -807,7 +807,7 @@ class ConnectAPI(IConnectAPI):
         return cls._instance
 
     def __init__(self, alias: str = "default", user: str = "milvus", password: str = "developer",
-                 host: str = "127.0.0.1", port: str = "19530", timeout: int = 30, **kwargs):
+                 host: str = "127.0.0.1", port: int = 19530, timeout: int = 30, **kwargs):
         """Initializes ConnectAPI with connection parameters.
 
         Args:
@@ -815,7 +815,7 @@ class ConnectAPI(IConnectAPI):
             user (str): Username for authentication. Defaults to "milvus".
             password (str): Password for authentication. Defaults to "developer".
             host (str): Milvus server hostname. Defaults to "127.0.0.1".
-            port (str): Milvus server port. Defaults to "19530".
+            port (int): Milvus server port. Defaults to "19530".
             timeout (int): Connection timeout in seconds. Defaults to 30.
             **kwargs: Additional arguments for the Milvus client.
         """
@@ -828,6 +828,15 @@ class ConnectAPI(IConnectAPI):
             self._port = port
             self._kwargs = kwargs
             self._initialized = False
+            # self.connect(
+            #     alias=alias,
+            #     user=user,
+            #     password=password,
+            #     host=host,
+            #     port=port,
+            #     timeout=timeout,
+            #     **kwargs
+            # )
         else:
             log.warning("ConnectAPI instance already exists. Using existing parameters.")
 
@@ -836,7 +845,7 @@ class ConnectAPI(IConnectAPI):
                       user: str = "milvus",
                       password: str = "developer",
                       host: str = "127.0.0.1",
-                      port: str = "19530",
+                      port: int = 19530,
                       timeout: int = 30, **kwargs):
         """Establishes a connection to the Milvus server.
 
@@ -845,7 +854,7 @@ class ConnectAPI(IConnectAPI):
             user (str): Username for authentication. Defaults to "milvus".
             password (str): Password for authentication. Defaults to "developer".
             host (str): Milvus server hostname. Defaults to "127.0.0.1".
-            port (str): Milvus server port. Defaults to "19530".
+            port (int): Milvus server port. Defaults to "19530".
             timeout (int): Connection timeout in seconds. Defaults to 30.
             **kwargs: Additional arguments for the Milvus client.
 
@@ -855,7 +864,8 @@ class ConnectAPI(IConnectAPI):
         if not self._initialized:
             self._alias = alias
             self._timeout = timeout
-            await self._connect(alias, user, password, host, port, **kwargs)
+            await self._connect(
+                alias, user, password, host, port, **kwargs)
             self._initialized = True
             log.info(f"Connected to Milvus at {host}:{port} with alias {alias}")
         else:
@@ -864,7 +874,7 @@ class ConnectAPI(IConnectAPI):
     @async_log_decorator
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10),
            retry=retry_if_exception_type(MilvusException))
-    async def _connect(self, alias: str, user: str, password: str, host: str, port: str, **kwargs):
+    async def _connect(self, alias: str, user: str, password: str, host: str, port: int, **kwargs):
         """Internal method to connect with retry logic.
         This method is decorated with retry logic to handle connection failures.
         It will attempt to connect up to 3 times with exponential backoff.
@@ -879,7 +889,7 @@ class ConnectAPI(IConnectAPI):
             user (str): Username for authentication. Defaults to "milvus".
             password (str): Password for authentication. Defaults to "developer".
             host (str): Milvus server hostname. Defaults to "127.0.0.1".
-            port (str): Milvus server port. Defaults to "19530".
+            port (int): Milvus server port. Defaults to "19530".
             **kwargs: Additional arguments for the Milvus client.
 
         Raises:
@@ -893,8 +903,8 @@ class ConnectAPI(IConnectAPI):
                 alias=alias,
                 user=user,
                 password=password,
-                host=host,
-                port=port,
+                db_name=os.environ["MILVUS_DB"],
+                token=os.environ["MILVUS_TOKEN"],
                 _async=True,
                 **kwargs
             )

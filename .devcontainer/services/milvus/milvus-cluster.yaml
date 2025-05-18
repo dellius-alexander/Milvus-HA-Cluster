@@ -20,11 +20,14 @@ x-variables:
       restart_policy:
         condition: on-failure
     networks:
-      - milvus
+        - milvus
+        - pulsar-network
+        - etcd-network
+        - minio-network
 
   milvus_environment_vars: &milvus_environment_vars
-    ETCD_ENDPOINTS: haproxy:2379
-    MINIO_ADDRESS: haproxy:9000
+    ETCD_ENDPOINTS: etcd-proxy:2379
+    MINIO_ADDRESS: minio-proxy:9000
     MINIO_ACCESS_KEY_ID: "minioadmin"
     MINIO_SECRET_ACCESS_KEY: "WW91ckdyYWZhbmFTdHJvbmdQYXNzd29yZDEyMw"
     PULSAR_ADDRESS: pulsar://pulsar-proxy:6650
@@ -45,16 +48,16 @@ services:
       <<: *milvus_environment_vars
       ROOT_COORD_ADDRESS: rootcoord:53100
     depends_on:
-      etcd0:
+      etcd-proxy:
         condition: service_healthy
-      minio0:
+      minio-proxy:
         condition: service_healthy
       pulsar-proxy:
         condition: service_healthy
-      haproxy:
-        condition: service_healthy
+#      haproxy:
+#        condition: service_healthy
 
-  proxy:
+  milvus-proxy:
     <<: *milvus_common
     container_name: milvus-proxy
     command: ["milvus", "run", "proxy"]
@@ -65,14 +68,14 @@ services:
       - "19530:19530"
       - "9091:9091"
     depends_on:
-      etcd0:
+      etcd-proxy:
         condition: service_healthy
-      minio0:
+      minio-proxy:
         condition: service_healthy
       pulsar-proxy:
         condition: service_healthy
-      haproxy:
-        condition: service_healthy
+#      haproxy:
+#        condition: service_healthy
     networks:
         - milvus
         - external-network
@@ -94,7 +97,11 @@ services:
       <<: *milvus_environment_vars
       QUERY_COORD_ADDRESS: querycoord:19531
     depends_on:
-      haproxy:
+      etcd-proxy:
+        condition: service_healthy
+      minio-proxy:
+        condition: service_healthy
+      pulsar-proxy:
         condition: service_healthy
 
   querynode-1:
@@ -135,7 +142,11 @@ services:
       <<: *milvus_environment_vars
       INDEX_COORD_ADDRESS: indexcoord:31000
     depends_on:
-      haproxy:
+      etcd-proxy:
+        condition: service_healthy
+      minio-proxy:
+        condition: service_healthy
+      pulsar-proxy:
         condition: service_healthy
 
   indexnode-1:
@@ -176,7 +187,11 @@ services:
       <<: *milvus_environment_vars
       DATA_COORD_ADDRESS: datacoord:13333
     depends_on:
-      haproxy:
+      etcd-proxy:
+        condition: service_healthy
+      minio-proxy:
+        condition: service_healthy
+      pulsar-proxy:
         condition: service_healthy
 
   datanode-1:

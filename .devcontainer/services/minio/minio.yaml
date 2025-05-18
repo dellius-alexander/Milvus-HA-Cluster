@@ -1,3 +1,26 @@
+####################################################################
+# Define networks for service communication
+networks:
+  minio-network:
+    name: minio-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+#  external-network:
+#    name: external-network
+#    driver: bridge
+#    ipam:
+#      driver: default
+####################################################################
+# Define persistent volumes for data durability
+volumes:
+  minio_data0:
+    name: minio_data0
+  minio_data1:
+    name: minio_data1
+  minio_data2:
+    name: minio_data2
 #####################################################################
 # Variables for the Docker Compose file
 x-variables:
@@ -67,22 +90,39 @@ services:
     <<: *minio-common
     volumes:
       - minio_data2:/data
+  ####################################################################
+  # HAProxy service for load balancing
+  minio-proxy:
+    build:
+      context: .
+      dockerfile: haproxy.Dockerfile
+    container_name: minio-proxy
+    hostname: minio-proxy
+    command: ["haproxy", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
+#    image: haproxy:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+      - "28404:8404"
+    depends_on:
+      minio0:
+        condition: service_healthy
+      minio1:
+        condition: service_healthy
+      minio2:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "haproxy -v" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - minio-network
+#      - external-network
 
-####################################################################
-# Define networks for service communication
-networks:
-  minio-network:
-    name: minio-network
-    internal: true
-    driver: bridge
-    ipam:
-      driver: default
-####################################################################
-# Define persistent volumes for data durability
-volumes:
-  minio_data0:
-    name: minio_data0
-  minio_data1:
-    name: minio_data1
-  minio_data2:
-    name: minio_data2

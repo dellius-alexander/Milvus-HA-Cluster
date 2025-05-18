@@ -1,8 +1,32 @@
+####################################################################
+# Define networks for service communication
+networks:
+  etcd-network:
+    name: etcd-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+#  external-network:
+#    name: external-network
+#    driver: bridge
+#    ipam:
+#      driver: default
+####################################################################
+# Define persistent volumes for data durability
+volumes:
+  etcd0_data:
+    name: etcd0_data
+  etcd1_data:
+    name: etcd1_data
+  etcd2_data:
+    name: etcd2_data
+
 #####################################################################
 # Variables for the Docker Compose file
 x-variables:
   etcd_environment_vars: &etcd_environment_vars
-    ETCD_INITIAL_CLUSTER=etcd0: http://etcd0:2380,etcd1=http://etcd1:2380,etcd2=http://etcd2:2380
+    ETCD_INITIAL_CLUSTER: etcd0=http://etcd0:2380,etcd1=http://etcd1:2380,etcd2=http://etcd2:2380
     ETCD_INITIAL_CLUSTER_STATE: new
     ETCD_AUTO_COMPACTION_MODE: revision
     ETCD_AUTO_COMPACTION_RETENTION: 1000
@@ -30,6 +54,7 @@ x-variables:
       - etcd-network
     healthcheck:
       test: [ "CMD", "etcdctl", "--endpoints=http://etcd0:2379,http://etcd1:2379,http://etcd2:2379", "endpoint", "health" ]
+#      test: [ "CMD", "etcdctl", "--endpoints=http://etcd-proxy", "endpoint", "health" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -41,7 +66,7 @@ x-variables:
         reservations:
           cpus: '0.5'
           memory: 256M
-      mode: replicated
+      mode: global
       replicas: 1
       restart_policy:
         condition: on-failure
@@ -50,8 +75,9 @@ x-variables:
 services:
   ####################################################################
   # Etcd service for metadata storage
+  # etcd replica 1
   etcd0:
-    container_name: etcd0
+#    container_name: etcd0
     hostname: etcd0
     environment:
       <<: *etcd_environment_vars
@@ -59,13 +85,12 @@ services:
       ETCD_ADVERTISE_CLIENT_URLS: http://etcd0:2379
       ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd0:2380
     volumes:
-      - etcd0_data:/etcd_data
+      - etcd0_data:/etcd
     <<: *etcd_commons
-
 
   # etcd replica 2
   etcd1:
-    container_name: etcd1
+#    container_name: etcd1
     hostname: etcd1
     environment:
       <<: *etcd_environment_vars
@@ -73,12 +98,12 @@ services:
       ETCD_ADVERTISE_CLIENT_URLS: http://etcd1:2379
       ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd1:2380
     volumes:
-      - etcd1_data:/etcd_data
+      - etcd1_data:/etcd
     <<: *etcd_commons
 
   # etcd replica 3
   etcd2:
-    container_name: etcd2
+#    container_name: etcd2
     hostname: etcd2
     environment:
       <<: *etcd_environment_vars
@@ -86,24 +111,39 @@ services:
       ETCD_ADVERTISE_CLIENT_URLS: http://etcd2:2379
       ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd2:2380
     volumes:
-      - etcd2_data:/etcd_data
+      - etcd2_data:/etcd
     <<: *etcd_commons
-
-####################################################################
-# Define networks for service communication
-networks:
-  etcd-network:
-    name: etcd-network
-    internal: true
-    driver: bridge
-    ipam:
-      driver: default
-####################################################################
-# Define persistent volumes for data durability
-volumes:
-  etcd0_data:
-    name: etcd_data
-  etcd1_data:
-    name: etcd1_data
-  etcd2_data:
-    name: etcd2_data
+  ####################################################################
+  # HAProxy service for load balancing
+  etcd-proxy:
+    build:
+      context: .
+      dockerfile: haproxy.Dockerfile
+    container_name: etcd-proxy
+    hostname: etcd-proxy
+    command: ["haproxy", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
+#    image: haproxy:latest
+    ports:
+      - "2379:2379"
+      - "18404:8404"
+    depends_on:
+      etcd0:
+        condition: service_healthy
+      etcd1:
+        condition: service_healthy
+      etcd2:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "haproxy -v" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - etcd-network
+#      - external-network

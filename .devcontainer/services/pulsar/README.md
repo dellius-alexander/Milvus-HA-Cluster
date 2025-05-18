@@ -106,110 +106,139 @@ The following diagram illustrates the cluster architecture:
 ---
 title: Apache Pulsar Cluster Architecture
 config:
-    layout: auto
+    layout: elk
     look: neo
-    theme: neo-dark
+    theme: neutral
     themeVariables:
-        primaryColor: "#ffcc00"
-        edgeLabelBackground: "#ffffff"
-        tertiaryColor: "#ffffff"
-        nodeSpacing: 50
-        edgeLabelStyle: "font-size: 12px; font-family: Arial, sans-serif;"
-        nodeLabelStyle: "font-size: 12px; font-family: Arial, sans-serif;"
-        clusterBkgColor: "#f0f0f0"
-        clusterBorderColor: "#000000"
-        clusterBorderWidth: 2
-        clusterPadding: 10
-        clusterLabelStyle: "font-size: 14px; font-weight: bold; font-family: Arial, sans-serif;"
+        primaryColor: "#FFD700"  # Gold for nodes
+        secondaryColor: "#2E8B57"  # Sea green for accents
+        tertiaryColor: "#FFFFFF"  # White for text
+        backgroundColor: "#F8FAFC"  # Soft white-blue background
+        edgeLabelBackground: "#FFFFFF"
+        edgeLabelTextColor: "#1F2A44"
+        nodeSpacing: 70
+        rankSpacing: 90
+        edgeLabelStyle: "font-size: 10px; font-family: 'Inter', sans-serif; font-weight: 500; fill: #1F2A44;"
+        nodeLabelStyle: "font-size: 11px; font-family: 'Inter', sans-serif; font-weight: 600; fill: #1F2A44;"
+        clusterBkgColor: "#E8F0FE"  # Light blue for cluster backgrounds
+        clusterBorderColor: "#2E8B57"
+        clusterBorderWidth: 1
+        clusterPadding: 20
+        clusterLabelStyle: "font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 700; fill: #1F2A44;"
 ---
 graph TD
+    %% Styling classes for nodes and connections
+    classDef clientNode fill:#B0E0E6,stroke:#4682B4,stroke-width:1.5px,border-radius:5px
+    classDef proxyNode fill:#98FB98,stroke:#2E8B57,stroke-width:1.5px,border-radius:5px
+    classDef brokerNode fill:#FFB6C1,stroke:#C71585,stroke-width:1.5px,border-radius:5px
+    classDef bookieNode fill:#FFDAB9,stroke:#FF8C00,stroke-width:1.5px,border-radius:5px
+    classDef zookeeperNode fill:#E6E6FA,stroke:#6A5ACD,stroke-width:1.5px,border-radius:5px
+    classDef haproxyNode fill:#F0E68C,stroke:#DAA520,stroke-width:1.5px,border-radius:5px
+
+    classDef clientToProxy stroke:#FF4500,stroke-width:2px,stroke-dasharray:2 2  %% OrangeRed, dashed
+    classDef proxyToBroker stroke:#228B22,stroke-width:2px  %% ForestGreen, solid
+    classDef brokerToBookie stroke:#9932CC,stroke-width:2px,stroke-dasharray:5 5  %% DarkOrchid, dashed
+    classDef brokerToZookeeper stroke:#1E90FF,stroke-width:2px  %% DodgerBlue, solid
+    classDef bookieToZookeeper stroke:#DC143C,stroke-width:2px,stroke-dasharray:3 3  %% Crimson, dashed
+    classDef zookeeperInternal stroke:#6A5ACD,stroke-width:2px  %% SlateBlue, solid
+
     subgraph Clients
         direction LR
-            C1["Client 1"]
-%%            C1@{ icon: "azure:machinesazurearc", pos: "b"}
-            C2["Client 2"]
-%%            C2@{ icon: "azure:machinesazurearc", pos: "b"}
-            C3["Client 3"]
-%%            C3@{ icon: "azure:machinesazurearc", pos: "b"}
+        C1["Client 1"]:::clientNode
+        C2["Client 2"]:::clientNode
+        C3["Client 3"]:::clientNode
     end
 
     subgraph HAProxy
-        HP[Pulsar Cluster Entrypoint<br>HAProxy<br>Ports: 6650, 8080]
+        HP[Pulsar Cluster Entrypoint<br>HAProxy<br>Ports: 6650, 8080]:::haproxyNode
     end
 
     subgraph Pulsar Proxies
         direction LR
-            P1[Proxy 1<br>Ports: 6650, 8080]
-            P2[Proxy 2<br>Ports: 6650, 8080]
-            P3[Proxy 3<br>Ports: 6650, 8080]
+        P1[Proxy 1<br>Ports: 6650, 8080]:::proxyNode
+        P2[Proxy 2<br>Ports: 6650, 8080]:::proxyNode
+        P3[Proxy 3<br>Ports: 6650, 8080]:::proxyNode
     end
 
     subgraph Pulsar Brokers
         direction LR
-            B1[Broker 1<br>Ports: 6650, 8080]
-            B2[Broker 2<br>Ports: 6650, 8080]
-            B3[Broker 3<br>Ports: 6650, 8080]
+        B1[Broker 1<br>Ports: 6650, 8080]:::brokerNode
+        B2[Broker 2<br>Ports: 6650, 8080]:::brokerNode
+        B3[Broker 3<br>Ports: 6650, 8080]:::brokerNode
     end
 
     subgraph BookKeeper
         direction LR
-            BK1[Bookie 1<br>Port: 3181]
-            BK2[Bookie 2<br>Port: 3181]
-            BK3[Bookie 3<br>Port: 3181]
+        BK1[Bookie 1<br>Port: 3181]:::bookieNode
+        BK2[Bookie 2<br>Port: 3181]:::bookieNode
+        BK3[Bookie 3<br>Port: 3181]:::bookieNode
     end
 
     subgraph ZooKeeper Ensemble
         direction LR
-            ZK1[Zookeeper 1<br>Ports: 2181, 2888, 3888]
-            ZK2[Zookeeper 2<br>Ports: 2181, 2888, 3888]
-            ZK3[Zookeeper 3<br>Ports: 2181, 2888, 3888]
+        ZK1[Zookeeper 1<br>Ports: 2181, 2888, 3888]:::zookeeperNode
+        ZK2[Zookeeper 2<br>Ports: 2181, 2888, 3888]:::zookeeperNode
+        ZK3[Zookeeper 3<br>Ports: 2181, 2888, 3888]:::zookeeperNode
     end
 
-    C1 --> HP
-    C2 --> HP
-    C3 --> HP
-    HP --> P1
-    HP --> P2
-    HP --> P3
-    P1 --> B1
-    P1 --> B2
-    P1 --> B3
-    P2 --> B1
-    P2 --> B2
-    P2 --> B3
-    P3 --> B1
-    P3 --> B2
-    P3 --> B3
-    B1 --> BK1
-    B1 --> BK2
-    B1 --> BK3
-    B2 --> BK1
-    B2 --> BK2
-    B2 --> BK3
-    B3 --> BK1
-    B3 --> BK2
-    B3 --> BK3
-    B1 --> ZK1
-    B1 --> ZK2
-    B1 --> ZK3
-    B2 --> ZK1
-    B2 --> ZK2
-    B2 --> ZK3
-    B3 --> ZK1
-    B3 --> ZK2
-    B3 --> ZK3
-    BK1 --> ZK1
-    BK1 --> ZK2
-    BK1 --> ZK3
-    BK2 --> ZK1
-    BK2 --> ZK2
-    BK2 --> ZK3
-    BK3 --> ZK1
-    BK3 --> ZK2
-    BK3 --> ZK3
-    ZK1 --> ZK2
-    ZK1 --> ZK3
-    ZK2 --> ZK3
+    %% Client to HAProxy connections
+    C1 -->|Connect| HP:::clientToProxy
+    C2 -->|Connect| HP:::clientToProxy
+    C3 -->|Connect| HP:::clientToProxy
+
+    %% HAProxy to Proxies
+    HP -->|Forward| P1:::clientToProxy
+    HP -->|Forward| P2:::clientToProxy
+    HP -->|Forward| P3:::clientToProxy
+
+    %% Proxies to Brokers
+    P1 -->|Route| B1:::proxyToBroker
+    P1 -->|Route| B2:::proxyToBroker
+    P1 -->|Route| B3:::proxyToBroker
+    P2 -->|Route| B1:::proxyToBroker
+    P2 -->|Route| B2:::proxyToBroker
+    P2 -->|Route| B3:::proxyToBroker
+    P3 -->|Route| B1:::proxyToBroker
+    P3 -->|Route| B2:::proxyToBroker
+    P3 -->|Route| B3:::proxyToBroker
+
+    %% Brokers to Bookies
+    B1 -->|Write| BK1:::brokerToBookie
+    B1 -->|Write| BK2:::brokerToBookie
+    B1 -->|Write| BK3:::brokerToBookie
+    B2 -->|Write| BK1:::brokerToBookie
+    B2 -->|Write| BK2:::brokerToBookie
+    B2 -->|Write| BK3:::brokerToBookie
+    B3 -->|Write| BK1:::brokerToBookie
+    B3 -->|Write| BK2:::brokerToBookie
+    B3 -->|Write| BK3:::brokerToBookie
+
+    %% Brokers to Zookeeper
+    B1 -->|Coordinate| ZK1:::brokerToZookeeper
+    B1 -->|Coordinate| ZK2:::brokerToZookeeper
+    B1 -->|Coordinate| ZK3:::brokerToZookeeper
+    B2 -->|Coordinate| ZK1:::brokerToZookeeper
+    B2 -->|Coordinate| ZK2:::brokerToZookeeper
+    B2 -->|Coordinate| ZK3:::brokerToZookeeper
+    B3 -->|Coordinate| ZK1:::brokerToZookeeper
+    B3 -->|Coordinate| ZK2:::brokerToZookeeper
+    B3 -->|Coordinate| ZK3:::brokerToZookeeper
+
+    %% Bookies to Zookeeper
+    BK1 -->|Metadata| ZK1:::bookieToZookeeper
+    BK1 -->|Metadata| ZK2:::bookieToZookeeper
+    BK1 -->|Metadata| ZK3:::bookieToZookeeper
+    BK2 -->|Metadata| ZK1:::bookieToZookeeper
+    BK2 -->|Metadata| ZK2:::bookieToZookeeper
+    BK2 -->|Metadata| ZK3:::bookieToZookeeper
+    BK3 -->|Metadata| ZK1:::bookieToZookeeper
+    BK3 -->|Metadata| ZK2:::bookieToZookeeper
+    BK3 -->|Metadata| ZK3:::bookieToZookeeper
+
+    %% Zookeeper internal connections
+    ZK1 -->|Sync| ZK2:::zookeeperInternal
+    ZK1 -->|Sync| ZK3:::zookeeperInternal
+    ZK2 -->|Sync| ZK3:::zookeeperInternal
 ```
 
 **Description**:
