@@ -173,7 +173,7 @@ A cluster implementation is optimal for this setup because:
 
 This approach is ideal for production environments requiring robust, scalable vector search capabilities.
 
-## Cluster Architecture Diagram
+## Milvus Cluster Architectural Diagram
 
 The following `Milvus Cluster Diagram` illustrates the Milvus cluster architecture, showing interactions between components and network boundaries.
 
@@ -202,7 +202,7 @@ config:
         clusterPadding: 15
         clusterLabelStyle: "font-size: 14px; font-family: 'Roboto', sans-serif; font-weight: bold; fill: #2F4F4F;"
 ---
-graph TD
+graph TB
     %% Define network isolation layers as subgraphs
     subgraph External_Network["External Network (Public Access)"]
         direction TB
