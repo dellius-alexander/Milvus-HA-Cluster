@@ -178,29 +178,31 @@ This approach is ideal for production environments requiring robust, scalable ve
 The following `Milvus Cluster Diagram` illustrates the Milvus cluster architecture, showing interactions between components and network boundaries.
 
 ```mermaid
-%% Initialize theme for visual appeal
-%%{
-  init: {
-    'theme': 'base',
-    'themeVariables': {
-      'primaryColor': '#f0f4ff',
-      'primaryTextColor': '#333',
-      'primaryBorderColor': '#5a5a5a',
-      'lineColor': '#888',
-      'secondaryColor': '#e6e9f0',
-      'tertiaryColor': '#d9e1ff',
-      'clusterBkg': '#f8f9fa',
-      'clusterBorder': '#d1d5db',
-      'fontFamily': 'Arial, sans-serif'
-    }
-  }
-}%%
-
+---
+title: Apache Pulsar Cluster Architecture
+config:
+    layout: elk
+    look: neo
+    theme: neutral
+    themeVariables:
+        bgColor: "#1C2526"  # Dark background for contrast
+        primaryColor: "#FFFFFF"  # White for nodes
+        secondaryColor: "#4682B4"  # Steel blue for secondary elements
+        tertiaryColor: "#ffffff"  # White for text
+        backgroundColor: "#1C2526"  # Dark background
+        edgeLabelBackground: "#ffffff"
+        edgeLabelTextColor: "#333333"
+        nodeSpacing: 60
+        rankSpacing: 80
+        edgeLabelStyle: "font-size: 11px; font-family: 'Roboto', sans-serif; font-weight: 500;"
+        nodeLabelStyle: "font-size: 12px; font-family: 'Roboto', sans-serif; font-weight: 600; fill: #333333;"
+        clusterBkgColor: "#ffffff"  # Soft blue-gray for clusters
+        clusterBorderColor: "#4682B4"
+        clusterBorderWidth: 1.5
+        clusterPadding: 15
+        clusterLabelStyle: "font-size: 14px; font-family: 'Roboto', sans-serif; font-weight: bold; fill: #2F4F4F;"
+---
 graph TD
-    %% Define title styling and node
-    classDef title fill:#ffffff,stroke:#333,stroke-width:2px,color:#000,font-size:18px,font-weight:bold;
-    TITLE[Milvus Cluster Architecture with Dependencies]:::title
-
     %% Define network isolation layers as subgraphs
     subgraph External_Network["External Network (Public Access)"]
         direction TB
@@ -216,7 +218,7 @@ graph TD
     subgraph Milvus_Network["Milvus Network (Internal)"]
         direction TB
         classDef milvus fill:#cce5ff,stroke:#004085,stroke-width:2px;
-        ROOTCOORD[Root Coordinator]:::milvus
+        ROOTcoord[Root Coordinator]:::milvus
         QUERYCOORD[Query Coordinator]:::milvus
         QUERYNODE1[Query Node 1]:::milvus
         QUERYNODE2[Query Node 2]:::milvus
@@ -277,17 +279,17 @@ graph TD
     MILVUS_PROXY -->|Etcd Metadata| ETCD_PROXY
     MILVUS_PROXY -->|Object Storage| MINIO_PROXY
     MILVUS_PROXY -->|Messaging| PULSAR_PROXY
-    ROOTCOORD -->|Coordinates| ETCD_PROXY
-    QUERYCOORD -->|Coordinates| ETCD_PROXY
-    INDEXCOORD -->|Coordinates| ETCD_PROXY
+    ROOTcoord -->|Coordinates| ETCD_PROXY
+    QUERYcoord -->|Coordinates| ETCD_PROXY
+    INDEXcoord -->|Coordinates| ETCD_PROXY
     DATACOORD -->|Coordinates| ETCD_PROXY
-    ROOTCOORD -->|Storage| MINIO_PROXY
-    QUERYCOORD -->|Storage| MINIO_PROXY
-    INDEXCOORD -->|Storage| MINIO_PROXY
+    ROOTcoord -->|Storage| MINIO_PROXY
+    QUERYcoord -->|Storage| MINIO_PROXY
+    INDEXcoord -->|Storage| MINIO_PROXY
     DATACOORD -->|Storage| MINIO_PROXY
-    ROOTCOORD -->|Messaging| PULSAR_PROXY
-    QUERYCOORD -->|Messaging| PULSAR_PROXY
-    INDEXCOORD -->|Messaging| PULSAR_PROXY
+    ROOTcoord -->|Messaging| PULSAR_PROXY
+    QUERYcoord -->|Messaging| PULSAR_PROXY
+    INDEXcoord -->|Messaging| PULSAR_PROXY
     DATACOORD -->|Messaging| PULSAR_PROXY
 
     %% Internal Milvus dependencies
@@ -344,29 +346,28 @@ graph TD
     %% Styling for nodes and connections
     classDef default fill:#ffffff,stroke:#333,stroke-width:1px;
     linkStyle default stroke:#888,stroke-width:2px;
-    %% Client connections
-    linkStyle 0,1,2 stroke:#fd7e14,stroke-width:2px;
-    %% Milvus to Etcd
-    linkStyle 3,6,7,8,9 stroke:#008080,stroke-width:2px;
-    %% Milvus to MinIO
-    linkStyle 4,10,11,12,13 stroke:#dc3545,stroke-width:2px;
-    %% Milvus to Pulsar
-    linkStyle 5,14,15,16,17 stroke:#6f42c1,stroke-width:2px;
-    %% Internal Milvus
-    linkStyle 18,19,20,21,22,23,24,25,26 stroke:#007bff,stroke-width:2px;
-    %% Monitoring
-    linkStyle 27,28,29,30 stroke:#28a745,stroke-width:2px;
-    %% Milvus GUI
-    linkStyle 31 stroke:#17a2b8,stroke-width:2px;
-    %% Pulsar Internal
-    linkStyle 32,33,34,35,36,37,38,39,40,41,42,43,44,45,46 stroke:#6f42c1,stroke-width:2px;
-    %% Etcd Internal
-    linkStyle 47,48,49 stroke:#ffc107,stroke-width:2px;
-    %% MinIO Internal
-    linkStyle 50,51,52 stroke:#dc3545,stroke-width:2px;
-
+    %% Client connections # Neon Pink
+    linkStyle 0,1,2 stroke:#FF00FF,stroke-width:2px;
+    %% Milvus to Etcd  # Neon Cyan
+    linkStyle 3,6,7,8,9 stroke:#00FFFF,stroke-width:2px;
+    %% Milvus to MinIO # Neon Red
+    linkStyle 4,10,11,12,13 stroke:#FF0000,stroke-width:2px;
+    %% Milvus to Pulsar # Neon Green
+    linkStyle 5,14,15,16,17 stroke:#00FF00,stroke-width:2px;
+    %% Internal Milvus # Neon Yellow
+    linkStyle 18,19,20,21,22,23,24,25,26 stroke:#FFFF00,stroke-width:2px;
+    %% Monitoring # Neon Orange
+    linkStyle 27,28,29,30 stroke:#FF4500,stroke-width:2px;
+    %% Milvus GUI  # Neon Hot Pink
+    linkStyle 31 stroke:#FF69B4,stroke-width:2px;
+    %% Pulsar Internal # Neon Green
+    linkStyle 32,33,34,35,36,37,38,39,40,41,42,43,44,45,46 stroke:#00FF00,stroke-width:2px;
+    %% Etcd Internal # Neon Cyan
+    linkStyle 47,48,49 stroke:#00FFFF,stroke-width:2px;
+    %% MinIO Internal # Neon Red
+    linkStyle 50,51,52 stroke:#FF0000,stroke-width:2px;
+    
 ```
-
 
 ## Testing the Milvus Cluster
 
