@@ -33,19 +33,19 @@ class IConnectAPI(ABC):
     Example:
         ```python
         class MilvusConnection(IConnectAPI):
-            async def connect(self, alias, user, password, host, port, timeout, **kwargs):
+            def connect(self, alias, user, password, host, port, timeout, **kwargs):
                 self.client = AsyncMilvusClient()
-                await self.client.connect(alias=alias, user=user, password=password, host=host, port=port, timeout=timeout)
-            async def disconnect(self):
-                await self.client.close()
+                self.client.connect(alias=alias, user=user, password=password, host=host, port=port, timeout=timeout)
+            def disconnect(self):
+                self.client.close()
         ```
     """
-    async_client: Annotated[Union[AsyncMilvusClient, MilvusClient],
+    client: Annotated[Union[MilvusClient],
         "An instance of AsyncMilvusClient or MilvusClient for server interaction."
     ]
 
     @abstractmethod
-    async def connect(self, alias: str, user: str, password: str, host: str, port: str, timeout: int, **kwargs):
+    def connect(self, alias: str, user: str, password: str, host: str, port: str, timeout: int, **kwargs):
         """
         Connects to the Milvus server asynchronously.
 
@@ -64,7 +64,7 @@ class IConnectAPI(ABC):
         raise NotImplementedError("The 'connect' method must be implemented by subclasses to establish a connection.")
 
     @abstractmethod
-    async def disconnect(self):
+    def disconnect(self):
         """
         Disconnects from the Milvus server asynchronously.
 
@@ -94,13 +94,13 @@ class ICollectionAPI(ABC):
     Example:
         ```python
         class MilvusCollectionAPI(ICollectionAPI):
-            async def create_collection(self, collection_name, fields, database_name, **kwargs):
+            def create_collection(self, collection_name, fields, database_name, **kwargs):
                 schema = CollectionSchema(fields=fields)
                 return Collection(collection_name, schema, **kwargs)
         ```
     """
     @abstractmethod
-    async def create_collection(self, collection_name: str, fields: List[FieldSchema], database_name: str,
+    def create_collection(self, collection_name: str, fields: List[FieldSchema], database_name: str,
                                 **kwargs) -> Collection:
         """
         Creates a new collection in the specified database.
@@ -120,7 +120,7 @@ class ICollectionAPI(ABC):
         raise NotImplementedError("The 'create_collection' method must be implemented by subclasses to create a collection.")
 
     @abstractmethod
-    async def list_collections(self, database_name: str) -> List[str]:
+    def list_collections(self, database_name: str) -> List[str]:
         """
         Lists all collections in the specified database.
 
@@ -136,7 +136,7 @@ class ICollectionAPI(ABC):
         raise NotImplementedError("The 'list_collections' method must be implemented by subclasses to list collections.")
 
     @abstractmethod
-    async def describe_collection(self, collection_name: str, database_name: str) -> Dict[str, Any]:
+    def describe_collection(self, collection_name: str, database_name: str) -> Dict[str, Any]:
         """
         Describes the specified collection.
 
@@ -153,7 +153,7 @@ class ICollectionAPI(ABC):
         raise NotImplementedError("The 'describe_collection' method must be implemented by subclasses to describe a collection.")
 
     @abstractmethod
-    async def drop_collection(self, collection_name: str, database_name: str) -> Dict[str, str]:
+    def drop_collection(self, collection_name: str, database_name: str) -> Dict[str, str]:
         """
         Drops the specified collection.
 
@@ -187,13 +187,13 @@ class IVectorAPI(ABC):
     Example:
         ```python
         class MilvusVectorAPI(IVectorAPI):
-            async def insert(self, collection_name, entities, partition_name, database_name):
+            def insert(self, collection_name, entities, partition_name, database_name):
                 collection = Collection(collection_name)
                 return collection.insert(entities)
         ```
     """
     @abstractmethod
-    async def insert(self, collection_name: str, entities: List[Dict[str, Any]], partition_name: Optional[str],
+    def insert(self, collection_name: str, entities: List[Dict[str, Any]], partition_name: Optional[str],
                      database_name: str) -> List[int]:
         """
         Inserts entities into a collection.
@@ -213,7 +213,7 @@ class IVectorAPI(ABC):
         raise NotImplementedError("The 'insert' method must be implemented by subclasses to insert entities.")
 
     @abstractmethod
-    async def delete(self, collection_name: str, expr: str, partition_name: Optional[str], database_name: str):
+    def delete(self, collection_name: str, expr: str, partition_name: Optional[str], database_name: str):
         """
         Deletes entities from a collection based on an expression.
 
@@ -245,13 +245,13 @@ class ISearchAPI(ABC):
     Example:
         ```python
         class MilvusSearchAPI(ISearchAPI):
-            async def search(self, collection_name, data, anns_field, param, limit, expr, output_fields, partition_names, database_name, **kwargs):
+            def search(self, collection_name, data, anns_field, param, limit, expr, output_fields, partition_names, database_name, **kwargs):
                 collection = Collection(collection_name)
                 return collection.search(data, anns_field, param, limit, expr, output_fields, partition_names)
         ```
     """
     @abstractmethod
-    async def search(self, collection_name: str, data: List[List[float]], anns_field: str, param: Dict[str, Any],
+    def search(self, collection_name: str, data: List[List[float]], anns_field: str, param: Dict[str, Any],
                      limit: int, expr: Optional[str], output_fields: Optional[List[str]],
                      partition_names: Optional[List[str]], database_name: str, **kwargs) -> List[Dict]:
         """
@@ -295,13 +295,13 @@ class IIndexAPI(ABC):
     Example:
         ```python
         class MilvusIndexAPI(IIndexAPI):
-            async def create_index(self, collection_name, field_name, index_params, database_name, **kwargs):
+            def create_index(self, collection_name, field_name, index_params, database_name, **kwargs):
                 collection = Collection(collection_name)
                 collection.create_index(field_name, index_params)
         ```
     """
     @abstractmethod
-    async def create_index(self, collection_name: str, field_name: str, index_params: Dict, database_name: str,
+    def create_index(self, collection_name: str, field_name: str, index_params: Dict, database_name: str,
                            **kwargs):
         """
         Creates an index on a field in a collection.
@@ -319,7 +319,7 @@ class IIndexAPI(ABC):
         raise NotImplementedError("The 'create_index' method must be implemented by subclasses to create an index.")
 
     @abstractmethod
-    async def drop_index(self, collection_name: str, field_name: str, database_name: str):
+    def drop_index(self, collection_name: str, field_name: str, database_name: str):
         """
         Drops an index from a field in a collection.
 
@@ -351,13 +351,13 @@ class IPartitionAPI(ABC):
     Example:
         ```python
         class MilvusPartitionAPI(IPartitionAPI):
-            async def create_partition(self, collection_name, partition_name, database_name):
+            def create_partition(self, collection_name, partition_name, database_name):
                 collection = Collection(collection_name)
                 collection.create_partition(partition_name)
         ```
     """
     @abstractmethod
-    async def create_partition(self, collection_name: str, partition_name: str, database_name: str):
+    def create_partition(self, collection_name: str, partition_name: str, database_name: str):
         """
         Creates a partition in a collection.
 
@@ -372,7 +372,7 @@ class IPartitionAPI(ABC):
         raise NotImplementedError("The 'create_partition' method must be implemented by subclasses to create a partition.")
 
     @abstractmethod
-    async def drop_partition(self, collection_name: str, partition_name: str, database_name: str):
+    def drop_partition(self, collection_name: str, partition_name: str, database_name: str):
         """
         Drops a partition from a collection.
 
@@ -403,13 +403,13 @@ class IStatAPI(ABC):
     Example:
         ```python
         class MilvusStatAPI(IStatAPI):
-            async def get_collection_stats(self, collection_name, database_name):
+            def get_collection_stats(self, collection_name, database_name):
                 collection = Collection(collection_name)
                 return collection.stats()
         ```
     """
     @abstractmethod
-    async def get_collection_stats(self, collection_name: str, database_name: str) -> Dict[str, Any]:
+    def get_collection_stats(self, collection_name: str, database_name: str) -> Dict[str, Any]:
         """
         Gets statistics for a collection.
 
@@ -441,12 +441,12 @@ class IMonitorAPI(ABC):
     Example:
         ```python
         class MilvusMonitorAPI(IMonitorAPI):
-            async def get_monitor_info(self):
+            def get_monitor_info(self):
                 return {"status": "healthy", "uptime": "24h"}
         ```
     """
     @abstractmethod
-    async def get_monitor_info(self) -> Dict[str, Any]:
+    def get_monitor_info(self) -> Dict[str, Any]:
         """
         Gets monitoring information for the Milvus server.
 
@@ -474,12 +474,12 @@ class IEmbeddingAPI(ABC):
     Example:
         ```python
         class MilvusEmbeddingAPI(IEmbeddingAPI):
-            async def generate_embeddings(self, data, embedding_model, embedding_type, batch_size):
+            def generate_embeddings(self, data, embedding_model, embedding_type, batch_size):
                 return embedding_model(data)
         ```
     """
     @abstractmethod
-    async def generate_embeddings(self, data: List[Any], embedding_model: Callable[[List[Any]], np.ndarray],
+    def generate_embeddings(self, data: List[Any], embedding_model: Callable[[List[Any]], np.ndarray],
                                   embedding_type: str, batch_size: int) -> np.ndarray:
         """
         Generates embeddings for the provided data.
@@ -516,13 +516,13 @@ class IAdminAPI(ABC):
     Example:
         ```python
         class MilvusAdminAPI(IAdminAPI):
-            async def create_user(self, username, password):
+            def create_user(self, username, password):
                 # Implementation to create user
                 pass
         ```
     """
     @abstractmethod
-    async def create_user(self, username: str, password: str):
+    def create_user(self, username: str, password: str):
         """
         Creates a new user in Milvus.
 
@@ -536,7 +536,7 @@ class IAdminAPI(ABC):
         raise NotImplementedError("The 'create_user' method must be implemented by subclasses to create a user.")
 
     @abstractmethod
-    async def list_users(self) -> List[str]:
+    def list_users(self) -> List[str]:
         """
         Lists all users in Milvus.
 
@@ -565,13 +565,13 @@ class IDataImportAPI(ABC):
     Example:
         ```python
         class MilvusDataImportAPI(IDataImportAPI):
-            async def import_data(self, collection_name, file_path, database_name):
+            def import_data(self, collection_name, file_path, database_name):
                 # Implementation to import data
                 pass
         ```
     """
     @abstractmethod
-    async def import_data(self, collection_name: str, file_path: str, database_name: str):
+    def import_data(self, collection_name: str, file_path: str, database_name: str):
         """
         Imports data into a collection from a file.
 
@@ -601,13 +601,13 @@ class IStrategy(ABC):
     Example:
         ```python
         class ConcreteStrategy(IStrategy):
-            async def execute(self, *args, **kwargs):
+            def execute(self, *args, **kwargs):
                 # Strategy implementation
                 pass
         ```
     """
     @abstractmethod
-    async def execute(self, *args, **kwargs):
+    def execute(self, *args, **kwargs):
         """
         Executes the strategy.
 
@@ -636,13 +636,13 @@ class ICommand(ABC):
     Example:
         ```python
         class ConcreteCommand(ICommand):
-            async def execute(self):
+            def execute(self):
                 # Command implementation
                 pass
         ```
     """
     @abstractmethod
-    async def execute(self):
+    def execute(self):
         """
         Executes the command.
 
@@ -670,18 +670,18 @@ class IOperation(ABC):
     Example:
         ```python
         class ConcreteOperation(IOperation):
-            async def validate(self, *args, **kwargs):
+            def validate(self, *args, **kwargs):
                 # Validation logic
                 pass
-            async def perform(self, *args, **kwargs):
+            def perform(self, *args, **kwargs):
                 # Operation logic
                 pass
-            async def post_process(self, result):
+            def post_process(self, result):
                 # Post-processing logic
                 pass
         ```
     """
-    async def execute(self, *args, **kwargs):
+    def execute(self, *args, **kwargs):
         """
         Executes the operation with validation, performance, and post-processing.
 
@@ -692,13 +692,13 @@ class IOperation(ABC):
         Returns:
             Any: Result of the operation.
         """
-        await self.validate(*args, **kwargs)
-        result = await self.perform(*args, **kwargs)
-        await self.post_process(result)
+        self.validate(*args, **kwargs)
+        result = self.perform(*args, **kwargs)
+        self.post_process(result)
         return result
 
     @abstractmethod
-    async def validate(self, *args, **kwargs):
+    def validate(self, *args, **kwargs):
         """
         Validates the operation parameters.
 
@@ -712,7 +712,7 @@ class IOperation(ABC):
         raise NotImplementedError("The 'validate' method must be implemented by subclasses to validate operation parameters.")
 
     @abstractmethod
-    async def perform(self, *args, **kwargs):
+    def perform(self, *args, **kwargs):
         """
         Performs the main operation logic.
 
@@ -729,7 +729,7 @@ class IOperation(ABC):
         raise NotImplementedError("The 'perform' method must be implemented by subclasses to perform the operation.")
 
     @abstractmethod
-    async def post_process(self, result):
+    def post_process(self, result):
         """
         Handles post-processing of the operation result.
 
@@ -791,13 +791,13 @@ class IState(ABC):
     Example:
         ```python
         class ConcreteState(IState):
-            async def handle(self, context):
+            def handle(self, context):
                 # State handling logic
                 pass
         ```
     """
     @abstractmethod
-    async def handle(self, context):
+    def handle(self, context):
         """
         Handles the state-specific behavior.
 
@@ -829,7 +829,7 @@ class IHandler(ABC):
     Example:
         ```python
         class ConcreteHandler(IHandler):
-            async def handle(self, request):
+            def handle(self, request):
                 # Handle request or pass to next
                 pass
         ```
@@ -851,7 +851,7 @@ class IHandler(ABC):
         return handler
 
     @abstractmethod
-    async def handle(self, request):
+    def handle(self, request):
         """
         Handles the request or passes it to the next handler.
 
@@ -879,13 +879,13 @@ class IBridgeImplementor(ABC):
     Example:
         ```python
         class ConcreteImplementor(IBridgeImplementor):
-            async def operation(self):
+            def operation(self):
                 # Implementation logic
                 pass
         ```
     """
     @abstractmethod
-    async def operation(self):
+    def operation(self):
         """
         Performs the implementation-specific operation.
 
@@ -945,13 +945,13 @@ class IConnectionManager(ABC):
     Example:
         ```python
         class ConcreteConnectionManager(IConnectionManager):
-            async def connect(self, alias, user, password, host, port, timeout):
+            def connect(self, alias, user, password, host, port, timeout):
                 # Connection logic
                 pass
         ```
     """
     @abstractmethod
-    async def connect(self, alias: str, user: str, password: str, host: str, port: str, timeout: int):
+    def connect(self, alias: str, user: str, password: str, host: str, port: str, timeout: int):
         """
         Establishes a connection to the Milvus server.
 
@@ -969,7 +969,7 @@ class IConnectionManager(ABC):
         raise NotImplementedError("The 'connect' method must be implemented by subclasses to establish a connection.")
 
     @abstractmethod
-    async def close(self):
+    def close(self):
         """
         Closes the connection to the Milvus server.
 

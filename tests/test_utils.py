@@ -4,7 +4,6 @@ import json
 import base64
 from unittest.mock import patch
 from src.utils import ConfigManager, SecurityManager
-from cryptography.fernet import Fernet
 import os
 import dotenv
 from src.logger import getLogger as GetLogger

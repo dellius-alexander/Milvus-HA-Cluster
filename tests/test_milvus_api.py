@@ -1,12 +1,10 @@
 import asyncio
 import unittest
-
-import pytest
 from pymilvus import FieldSchema, DataType, Collection
 
-from src.milvus import MilvusAPI, ConnectAPI
-
 from src.logger import getLogger as GetLogger
+from src.milvus.connect import ConnectAPI
+from src.milvus.milvus import MilvusAPI
 
 # Logging setup
 log = GetLogger(__name__)
@@ -17,7 +15,7 @@ class TestMilvusAPI(unittest.TestCase):
 
     async def setUp(self):
         self.api = None
-        async with ConnectAPI(
+        with ConnectAPI(
             alias="test_db",
             user="root",
             password="Milvus",

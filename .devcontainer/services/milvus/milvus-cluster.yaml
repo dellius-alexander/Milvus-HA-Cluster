@@ -57,9 +57,9 @@ services:
 #      haproxy:
 #        condition: service_healthy
 
-  milvus-proxy:
+  proxy:
     <<: *milvus_common
-    container_name: milvus-proxy
+    container_name: proxy
     command: ["milvus", "run", "proxy"]
     environment:
       <<: *milvus_environment_vars

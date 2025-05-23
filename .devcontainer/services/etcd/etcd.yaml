@@ -7,11 +7,11 @@ networks:
     driver: bridge
     ipam:
       driver: default
-#  external-network:
-#    name: external-network
-#    driver: bridge
-#    ipam:
-#      driver: default
+  external-network:
+    name: external-network
+    driver: bridge
+    ipam:
+      driver: default
 ####################################################################
 # Define persistent volumes for data durability
 volumes:
@@ -146,4 +146,4 @@ services:
         condition: on-failure
     networks:
       - etcd-network
-#      - external-network
+      - external-network
