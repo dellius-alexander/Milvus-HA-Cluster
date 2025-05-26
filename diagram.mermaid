@@ -14,7 +14,7 @@ graph TD
     %% Network Layers
     subgraph External_Network["external-network"]
         HAProxy["HAProxy<br>Ports: 2379, 9001, 8404, 19530, 9091, 3000, 3300, 38404, 28404, 18404"]
-        style HAProxy fill:#00ff00,stroke:#ff00ff,stroke-width:2px
+        style HAProxy fill:#1505a8,stroke:#ff00ff,stroke-width:2px
     end
 
     subgraph Milvus_Network["milvus-network"]
@@ -35,9 +35,9 @@ graph TD
         DataNode2["datanode-2"]
         DataNode3["datanode-3"]
         NodeExporter["node_exporter<br>Port: 9100"]
-        style MilvusEntrypoint fill:#00ff00,stroke:#ff00ff,stroke-width:2px
-        style MilvusProxy fill:#00ffff,stroke:#ff00ff,stroke-width:2px
-        style MilvusGUI fill:#00ffff,stroke:#ff00ff,stroke-width:2px
+        style MilvusEntrypoint fill:#1505a8,stroke:#ff00ff,stroke-width:2px
+        style MilvusProxy fill:#00ffff,stroke:#ff00ff,stroke-width:2px,color:#000
+        style MilvusGUI fill:#71f74f,stroke:#ff00ff,stroke-width:2px,color:#000
     end
 
     subgraph Etcd_Network["etcd-network"]
@@ -45,10 +45,10 @@ graph TD
         Etcd0["etcd0<br>Ports: 2379, 2380"]
         Etcd1["etcd1<br>Ports: 2379, 2380"]
         Etcd2["etcd2<br>Ports: 2379, 2380"]
-        style EtcdProxy fill:#00ff00,stroke:#ff00ff,stroke-width:2px
-        style Etcd0 fill:#ff00ff,stroke:#00ffff,stroke-width:2px
-        style Etcd1 fill:#ff00ff,stroke:#00ffff,stroke-width:2px
-        style Etcd2 fill:#ff00ff,stroke:#00ffff,stroke-width:2px
+        style EtcdProxy fill:#1505a8,stroke:#ff00ff,stroke-width:2px
+        style Etcd0 fill:#000000,stroke:#00ffff,stroke-width:2px,color:#fff
+        style Etcd1 fill:#000000,stroke:#00ffff,stroke-width:2px,color:#fff
+        style Etcd2 fill:#000000,stroke:#00ffff,stroke-width:2px,color:#fff
     end
 
     subgraph Minio_Network["minio-network"]
@@ -56,10 +56,10 @@ graph TD
         Minio0["minio0<br>Ports: 9000, 9001"]
         Minio1["minio1<br>Ports: 9000, 9001"]
         Minio2["minio2<br>Ports: 9000, 9001"]
-        style MinioProxy fill:#00ff00,stroke:#ff00ff,stroke-width:2px
-        style Minio0 fill:#ff00ff,stroke:#00ffff,stroke-width:2px
-        style Minio1 fill:#ff00ff,stroke:#00ffff,stroke-width:2px
-        style Minio2 fill:#ff00ff,stroke:#00ffff,stroke-width:2px
+        style MinioProxy fill:#1505a8,stroke:#ff00ff,stroke-width:2px,color:#fff
+        style Minio0 fill:#000000,stroke:#00ffff,stroke-width:2px,color:#fff
+        style Minio1 fill:#000000,stroke:#00ffff,stroke-width:2px,color:#fff
+        style Minio2 fill:#000000,stroke:#00ffff,stroke-width:2px,color:#fff
     end
 
     subgraph Pulsar_Network["pulsar-network"]
@@ -77,17 +77,17 @@ graph TD
         Zookeeper2["zookeeper2<br>Ports: 2181, 2888, 3888"]
         Zookeeper3["zookeeper3<br>Ports: 2181, 2888, 3888"]
         PulsarInit["pulsar-init"]
-        style PulsarProxy fill:#00ff00,stroke:#ff00ff,stroke-width:2px
-        style Proxy1 fill:#00ffff,stroke:#ff00ff,stroke-width:2px
-        style Proxy2 fill:#00ffff,stroke:#ff00ff,stroke-width:2px
-        style Proxy3 fill:#00ffff,stroke:#ff00ff,stroke-width:2px
+        style PulsarProxy fill:#1505a8,stroke:#ff00ff,stroke-width:2px,color:#fff
+        style Proxy1 fill:#00ffff,stroke:#ff00ff,stroke-width:2px,color:#000
+        style Proxy2 fill:#00ffff,stroke:#ff00ff,stroke-width:2px,color:#000
+        style Proxy3 fill:#00ffff,stroke:#ff00ff,stroke-width:2px,color:#000
     end
 
     subgraph Prometheus_Network["prometheus-network"]
         Prometheus["prometheus<br>Port: 9090"]
         Grafana["grafana<br>Port: 3000"]
-        style Prometheus fill:#00ffff,stroke:#ff00ff,stroke-width:2px
-        style Grafana fill:#00ffff,stroke:#ff00ff,stroke-width:2px
+        style Prometheus fill:#00ffff,stroke:#ff00ff,stroke-width:2px,color:#000
+        style Grafana fill:#00ffff,stroke:#ff00ff,stroke-width:2px,color:#000
     end
 
     %% Volume Mounts Layer
@@ -107,21 +107,21 @@ graph TD
         BookkeeperData3["bookkeeper_data3"]
         PrometheusData["prometheus_data"]
         GrafanaData["grafana_data"]
-        style HaproxyData fill:#ff00ff,stroke:#00ff00,stroke-width:2px
-        style Etcd0Data fill:#ff00ff,stroke:#00ff00,stroke-width:2px
-        style Etcd1Data fill:#ff00ff,stroke:#00ff00,stroke-width:2px
-        style Etcd2Data fill:#ff00ff,stroke:#00ff00,stroke-width:2px
-        style MinioData0 fill:#ff00ff,stroke:#00ff00,stroke-width:2px
-        style MinioData1 fill:#ff00ff,stroke:#00ff00,stroke-width:2px
-        style MinioData2 fill:#ff00ff,stroke:#00ff00,stroke-width:2px
-        style ZookeeperData1 fill:#ff00ff,stroke:#00ff00,stroke-width:2px
-        style ZookeeperData2 fill:#ff00ff,stroke:#00ff00,stroke-width:2px
-        style ZookeeperData3 fill:#ff00ff,stroke:#00ff00,stroke-width:2px
-        style BookkeeperData1 fill:#ff00ff,stroke:#00ff00,stroke-width:2px
-        style BookkeeperData2 fill:#ff00ff,stroke:#00ff00,stroke-width:2px
-        style BookkeeperData3 fill:#ff00ff,stroke:#00ff00,stroke-width:2px
-        style PrometheusData fill:#ff00ff,stroke:#00ff00,stroke-width:2px
-        style GrafanaData fill:#ff00ff,stroke:#00ff00,stroke-width:2px
+        style HaproxyData fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style Etcd0Data fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style Etcd1Data fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style Etcd2Data fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style MinioData0 fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style MinioData1 fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style MinioData2 fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style ZookeeperData1 fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style ZookeeperData2 fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style ZookeeperData3 fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style BookkeeperData1 fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style BookkeeperData2 fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style BookkeeperData3 fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style PrometheusData fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style GrafanaData fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
     end
 
     %% Connections
@@ -207,9 +207,9 @@ graph TD
     Prometheus --> PrometheusData
     Grafana --> GrafanaData
 
-    %% Notes
-    classDef note fill:#333,stroke:#00ff00,stroke-width:2px,color:#fff
-    Note1["Note: HAProxy acts as the main entry point, routing traffic to Milvus, Etcd, Minio, Pulsar, Prometheus, and Grafana services."]:::note
-    Note2["Note: Each service network is isolated (internal: true) except external-network, ensuring secure communication."]:::note
-    Note3["Note: Persistent volumes ensure data durability for Etcd, Minio, Pulsar, Prometheus, and Grafana."]:::note
-    Note4["Note: Milvus components (RootCoord, QueryCoord, etc.) connect to Etcd, Minio, and Pulsar via their respective proxies."]:::note
+%%    %% Notes
+%%    classDef note fill:#333,stroke:#00ff00,stroke-width:2px,color:#fff
+%%    Note1["Note: HAProxy acts as the main entry point, routing traffic to Milvus, Etcd, Minio, Pulsar, Prometheus, and Grafana services."]:::note
+%%    Note2["Note: Each service network is isolated (internal: true) except external-network, ensuring secure communication."]:::note
+%%    Note3["Note: Persistent volumes ensure data durability for Etcd, Minio, Pulsar, Prometheus, and Grafana."]:::note
+%%    Note4["Note: Milvus components (RootCoord, QueryCoord, etc.) connect to Etcd, Minio, and Pulsar via their respective proxies."]:::note
