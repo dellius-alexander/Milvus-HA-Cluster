@@ -1,8 +1,8 @@
 ####################################################################
 # Define networks for service communication
 networks:
-  milvus:
-    name: milvus
+  milvus-network:
+    name: milvus-network
     internal: true
     driver: bridge
     ipam:
@@ -21,6 +21,12 @@ networks:
       driver: default
   pulsar-network:
     name: pulsar-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  prometheus-network:
+    name: prometheus-network
     internal: true
     driver: bridge
     ipam:
@@ -217,10 +223,10 @@ services:
       file: .devcontainer/services/milvus/milvus-cluster.yaml
       service: rootcoord
 
-  proxy:
+  milvus-proxy:
     extends:
       file: .devcontainer/services/milvus/milvus-cluster.yaml
-      service: proxy
+      service: milvus-proxy
 
   querycoord:
     extends:
@@ -282,6 +288,18 @@ services:
       file: .devcontainer/services/milvus/milvus-cluster.yaml
       service: datanode-3
 
+  # Milvus Entrypoint
+  milvus-entrypoint:
+    extends:
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
+      service: milvus-entrypoint
+
+  ####################################################################
+  # Milvus Proxy service
+  haproxy:
+      extends:
+        file: .devcontainer/services/haproxy/haproxy.yaml
+        service: haproxy
   ####################################################################
   # Node exporter for host metrics
   node_exporter:

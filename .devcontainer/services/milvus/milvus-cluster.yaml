@@ -1,3 +1,17 @@
+####################################################################
+# Define networks for service communication
+networks:
+  milvus-network:
+    name: milvus-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  external-network:
+    name: external-network
+    driver: bridge
+    ipam:
+      driver: default
 #####################################################################
 # Variables for the Docker Compose file
 x-variables:
@@ -20,7 +34,7 @@ x-variables:
       restart_policy:
         condition: on-failure
     networks:
-        - milvus
+        - milvus-network
         - pulsar-network
         - etcd-network
         - minio-network
@@ -54,19 +68,18 @@ services:
         condition: service_healthy
       pulsar-proxy:
         condition: service_healthy
-#      haproxy:
-#        condition: service_healthy
 
-  proxy:
+  milvus-proxy:
     <<: *milvus_common
-    container_name: proxy
+    container_name: milvus-proxy
+    hostname: milvus-proxy
     command: ["milvus", "run", "proxy"]
     environment:
       <<: *milvus_environment_vars
       ROOT_COORD_ADDRESS: rootcoord:53100
-    ports:
-      - "19530:19530"
-      - "9091:9091"
+    expose:
+      - "19530"
+      - "9091"
     depends_on:
       etcd-proxy:
         condition: service_healthy
@@ -77,11 +90,10 @@ services:
 #      haproxy:
 #        condition: service_healthy
     networks:
-        - milvus
-        - external-network
-        - pulsar-network
-        - etcd-network
-        - minio-network
+      - milvus-network
+      - pulsar-network
+      - etcd-network
+      - minio-network
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:9091/healthz" ]
       interval: 30s
@@ -225,12 +237,49 @@ services:
       - "datacoord"
 
   ####################################################################
+  # Milvus Entrypoint
+  milvus-entrypoint:
+    build:
+      context: .
+      dockerfile: haproxy.Dockerfile
+    container_name: milvus-entrypoint
+    hostname: milvus-entrypoint
+    command: [ "haproxy", "-f", "/usr/local/etc/haproxy/haproxy.cfg" ]
+    #    image: haproxy:latest
+    expose:
+      - "19530"
+      - "9091"
+      - "8404"
+    depends_on:
+      minio-proxy:
+        condition: service_healthy
+      etcd-proxy:
+        condition: service_healthy
+      pulsar-proxy:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "haproxy -v" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+        - milvus-network
+
+  ####################################################################
   # Node exporter for host metrics
   node_exporter:
     image: prom/node-exporter:v1.8.0
     container_name: node_exporter
-    ports:
-      - "9100:9100"
+    expose:
+      - "9100"
+#    ports:
+#      - "9100:9100"
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -241,7 +290,7 @@ services:
       - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
     restart: always
     networks:
-      - milvus
+      - milvus-network
 
   ####################################################################
   # Milvus GUI service
@@ -249,28 +298,15 @@ services:
     image: zilliz/attu:latest
     container_name: milvus-gui
     environment:
-      MILVUS_URL: http://proxy:19530
+      MILVUS_URL: http://milvus-entrypoint:19530
+    expose:
+      - "3000"
     ports:
       - "3300:3000"
     depends_on:
-      proxy:
+      milvus-entrypoint:
         condition: service_healthy
     restart: on-failure
     networks:
-      - milvus
-      - external-network
+      - milvus-network
 
-####################################################################
-# Define networks for service communication
-networks:
-  milvus:
-    name: milvus
-    internal: true
-    driver: bridge
-    ipam:
-      driver: default
-  external-network:
-    name: external-network
-    driver: bridge
-    ipam:
-      driver: default

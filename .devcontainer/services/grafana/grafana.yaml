@@ -1,3 +1,42 @@
+
+####################################################################
+# Define networks for service communication
+networks:
+  milvus-network:
+    name: milvus-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  minio-network:
+    name: minio-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  etcd-network:
+    name: etcd-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  prometheus-network:
+    name: prometheus-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  pulsar-network:
+    name: pulsar-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+####################################################################
+# Define persistent volumes for data durability
+volumes:
+  grafana_data:
+    name: grafana_data
 #####################################################################
 services:
   ####################################################################
@@ -13,8 +52,10 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: "WW91ckdyYWZhbmFTdHJvbmdQYXNzd29yZDEyMw"
       # Log level for Grafana (info for production, debug for troubleshooting)
       GF_LOG_LEVEL: info
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
+#    ports:
+#      - "3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
     depends_on:
@@ -32,19 +73,8 @@ services:
       restart_policy:
         condition: on-failure
     networks:
-      - external-network
-
-####################################################################
-# Define networks for service communication
-networks:
-  external-network:
-    name: external-network
-    driver: bridge
-    ipam:
-      driver: default
-
-####################################################################
-# Define persistent volumes for data durability
-volumes:
-  grafana_data:
-    name: grafana_data
+      - milvus-network
+      - minio-network
+      - etcd-network
+      - prometheus-network
+      - pulsar-network

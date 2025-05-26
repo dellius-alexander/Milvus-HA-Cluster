@@ -7,11 +7,6 @@ networks:
     driver: bridge
     ipam:
       driver: default
-  external-network:
-    name: external-network
-    driver: bridge
-    ipam:
-      driver: default
 ####################################################################
 # Define persistent volumes for data durability
 volumes:
@@ -123,9 +118,9 @@ services:
     hostname: etcd-proxy
     command: ["haproxy", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
 #    image: haproxy:latest
-    ports:
-      - "2379:2379"
-      - "18404:8404"
+    expose:
+      - "2379"
+      - "8404"  # etcd metrics  18404
     depends_on:
       etcd0:
         condition: service_healthy
@@ -146,4 +141,3 @@ services:
         condition: on-failure
     networks:
       - etcd-network
-      - external-network

@@ -178,195 +178,221 @@ This approach is ideal for production environments requiring robust, scalable ve
 The following `Milvus Cluster Diagram` illustrates the Milvus cluster architecture, showing interactions between components and network boundaries.
 
 ```mermaid
----
-title: Apache Pulsar Cluster Architecture
-config:
-    layout: elk
-    look: neo
-    theme: neutral
-    themeVariables:
-        bgColor: "#1C2526"  # Dark background for contrast
-        primaryColor: "#FFFFFF"  # White for nodes
-        secondaryColor: "#4682B4"  # Steel blue for secondary elements
-        tertiaryColor: "#ffffff"  # White for text
-        backgroundColor: "#1C2526"  # Dark background
-        edgeLabelBackground: "#ffffff"
-        edgeLabelTextColor: "#333333"
-        nodeSpacing: 60
-        rankSpacing: 80
-        edgeLabelStyle: "font-size: 11px; font-family: 'Roboto', sans-serif; font-weight: 500;"
-        nodeLabelStyle: "font-size: 12px; font-family: 'Roboto', sans-serif; font-weight: 600; fill: #333333;"
-        clusterBkgColor: "#ffffff"  # Soft blue-gray for clusters
-        clusterBorderColor: "#4682B4"
-        clusterBorderWidth: 1.5
-        clusterPadding: 15
-        clusterLabelStyle: "font-size: 14px; font-family: 'Roboto', sans-serif; font-weight: bold; fill: #2F4F4F;"
----
-graph TB
-    %% Define network isolation layers as subgraphs
-    subgraph External_Network["External Network (Public Access)"]
-        direction TB
-        classDef external fill:#d4edda,stroke:#155724,stroke-width:2px;
-        CLIENT[Client<br>External Applications/Users]:::external
-        GRAFANA[Grafana<br>Port: 3000]:::external
-        MILVUS_GUI[Milvus GUI<br>Port: 3300]:::external
-        MILVUS_PROXY[Milvus Proxy<br>Ports: 19530, 9091]:::external
-        NODE_EXPORTER[Node Exporter<br>Port: 9100]:::external
-        PROMETHEUS[Prometheus<br>Port: 9090]:::external
+%%{
+  init: {
+    'theme': 'dark', 
+    'themeVariables': { 
+      'primaryColor': '#00ff00', 
+      'edgeLabelBackground': '#333', 
+      'lineColor': '#ff00ff', 
+      'tertiaryColor': '#00ffff', 
+      'fontSize': '16px'
+    }
+  }
+}%%
+graph TD
+    %% Network Layers
+    subgraph External_Network["external-network"]
+        HAProxy["HAProxy<br>Ports: 2379, 9001, 8404, 19530, 9091, 3000, 3300, 38404, 28404, 18404"]
+        style HAProxy fill:#00ff00,stroke:#ff00ff,stroke-width:2px
     end
 
-    subgraph Milvus_Network["Milvus Network (Internal)"]
-        direction TB
-        classDef milvus fill:#cce5ff,stroke:#004085,stroke-width:2px;
-        ROOTcoord[Root Coordinator]:::milvus
-        QUERYCOORD[Query Coordinator]:::milvus
-        QUERYNODE1[Query Node 1]:::milvus
-        QUERYNODE2[Query Node 2]:::milvus
-        QUERYNODE3[Query Node 3]:::milvus
-        INDEXCOORD[Index Coordinator]:::milvus
-        INDEXNODE1[Index Node 1]:::milvus
-        INDEXNODE2[Index Node 2]:::milvus
-        INDEXNODE3[Index Node 3]:::milvus
-        DATACOORD[Data Coordinator]:::milvus
-        DATANODE1[Data Node 1]:::milvus
-        DATANODE2[Data Node 2]:::milvus
-        DATANODE3[Data Node 3]:::milvus
+    subgraph Milvus_Network["milvus-network"]
+        MilvusEntrypoint["milvus-entrypoint<br>HAProxy<br>Ports: 19530, 9091, 8404"]
+        MilvusProxy["milvus-proxy<br>Port: 19530, 9091"]
+        MilvusGUI["milvus-gui<br>Port: 3000 (mapped to 3300)"]
+        RootCoord["rootcoord"]
+        QueryCoord["querycoord"]
+        QueryNode1["querynode-1"]
+        QueryNode2["querynode-2"]
+        QueryNode3["querynode-3"]
+        IndexCoord["indexcoord"]
+        IndexNode1["indexnode-1"]
+        IndexNode2["indexnode-2"]
+        IndexNode3["indexnode-3"]
+        DataCoord["datacoord"]
+        DataNode1["datanode-1"]
+        DataNode2["datanode-2"]
+        DataNode3["datanode-3"]
+        NodeExporter["node_exporter<br>Port: 9100"]
+        style MilvusEntrypoint fill:#00ff00,stroke:#ff00ff,stroke-width:2px
+        style MilvusProxy fill:#00ffff,stroke:#ff00ff,stroke-width:2px
+        style MilvusGUI fill:#00ffff,stroke:#ff00ff,stroke-width:2px
     end
 
-    subgraph Etcd_Network["Etcd Network (Internal)"]
-        direction TB
-        classDef etcd fill:#fff3cd,stroke:#856404,stroke-width:2px;
-        ETCD0[Etcd Node 0]:::etcd
-        ETCD1[Etcd Node 1]:::etcd
-        ETCD2[Etcd Node 2]:::etcd
-        ETCD_PROXY[Etcd Proxy<br>Ports: 2379, 18404]:::etcd
+    subgraph Etcd_Network["etcd-network"]
+        EtcdProxy["etcd-proxy<br>HAProxy<br>Ports: 2379, 8404"]
+        Etcd0["etcd0<br>Ports: 2379, 2380"]
+        Etcd1["etcd1<br>Ports: 2379, 2380"]
+        Etcd2["etcd2<br>Ports: 2379, 2380"]
+        style EtcdProxy fill:#00ff00,stroke:#ff00ff,stroke-width:2px
+        style Etcd0 fill:#ff00ff,stroke:#00ffff,stroke-width:2px
+        style Etcd1 fill:#ff00ff,stroke:#00ffff,stroke-width:2px
+        style Etcd2 fill:#ff00ff,stroke:#00ffff,stroke-width:2px
     end
 
-    subgraph Minio_Network["MinIO Network (Internal)"]
-        direction TB
-        classDef minio fill:#f8d7da,stroke:#721c24,stroke-width:2px;
-        MINIO0[MinIO Node 0]:::minio
-        MINIO1[MinIO Node 1]:::minio
-        MINIO2[MinIO Node 2]:::minio
-        MINIO_PROXY[MinIO Proxy<br>Ports: 9000, 9001, 28404]:::minio
+    subgraph Minio_Network["minio-network"]
+        MinioProxy["minio-proxy<br>HAProxy<br>Ports: 9000, 9001, 8404"]
+        Minio0["minio0<br>Ports: 9000, 9001"]
+        Minio1["minio1<br>Ports: 9000, 9001"]
+        Minio2["minio2<br>Ports: 9000, 9001"]
+        style MinioProxy fill:#00ff00,stroke:#ff00ff,stroke-width:2px
+        style Minio0 fill:#ff00ff,stroke:#00ffff,stroke-width:2px
+        style Minio1 fill:#ff00ff,stroke:#00ffff,stroke-width:2px
+        style Minio2 fill:#ff00ff,stroke:#00ffff,stroke-width:2px
     end
 
-    subgraph Pulsar_Network["Pulsar Network (Internal)"]
-        direction TB
-        classDef pulsar fill:#e2d3f5,stroke:#4a235a,stroke-width:2px;
-        ZK1[ZooKeeper 1]:::pulsar
-        ZK2[ZooKeeper 2]:::pulsar
-        ZK3[ZooKeeper 3]:::pulsar
-        PULSAR_INIT[Pulsar Init]:::pulsar
-        BOOKIE1[Bookie 1]:::pulsar
-        BOOKIE2[Bookie 2]:::pulsar
-        BOOKIE3[Bookie 3]:::pulsar
-        BROKER1[Broker 1]:::pulsar
-        BROKER2[Broker 2]:::pulsar
-        BROKER3[Broker 3]:::pulsar
-        PROXY1[Proxy 1]:::pulsar
-        PROXY2[Proxy 2]:::pulsar
-        PROXY3[Proxy 3]:::pulsar
-        PULSAR_PROXY[Pulsar Proxy<br>Ports: 6650, 8080]:::pulsar
+    subgraph Pulsar_Network["pulsar-network"]
+        PulsarProxy["pulsar-proxy<br>HAProxy<br>Ports: 6650, 8080, 8404"]
+        Proxy1["proxy1<br>Ports: 6650, 8080"]
+        Proxy2["proxy2<br>Ports: 6650, 8080"]
+        Proxy3["proxy3<br>Ports: 6650, 8080"]
+        Broker1["broker1<br>Ports: 6650, 8080"]
+        Broker2["broker2<br>Ports: 6650, 8080"]
+        Broker3["broker3<br>Ports: 6650, 8080"]
+        Bookie1["bookie1<br>Ports: 3181, 8000"]
+        Bookie2["bookie2<br>Ports: 3181, 8000"]
+        Bookie3["bookie3<br>Ports: 3181, 8000"]
+        Zookeeper1["zookeeper1<br>Ports: 2181, 2888, 3888"]
+        Zookeeper2["zookeeper2<br>Ports: 2181, 2888, 3888"]
+        Zookeeper3["zookeeper3<br>Ports: 2181, 2888, 3888"]
+        PulsarInit["pulsar-init"]
+        style PulsarProxy fill:#00ff00,stroke:#ff00ff,stroke-width:2px
+        style Proxy1 fill:#00ffff,stroke:#ff00ff,stroke-width:2px
+        style Proxy2 fill:#00ffff,stroke:#ff00ff,stroke-width:2px
+        style Proxy3 fill:#00ffff,stroke:#ff00ff,stroke-width:2px
     end
 
-    %% Client connections from external applications/users
-    CLIENT -->|Vector Operations| MILVUS_PROXY
-    CLIENT -->|GUI Access| MILVUS_GUI
-    CLIENT -->|Monitoring Dashboard| GRAFANA
-
-    %% Milvus to dependencies (Etcd, MinIO, Pulsar)
-    MILVUS_PROXY -->|Etcd Metadata| ETCD_PROXY
-    MILVUS_PROXY -->|Object Storage| MINIO_PROXY
-    MILVUS_PROXY -->|Messaging| PULSAR_PROXY
-    ROOTcoord -->|Coordinates| ETCD_PROXY
-    QUERYcoord -->|Coordinates| ETCD_PROXY
-    INDEXcoord -->|Coordinates| ETCD_PROXY
-    DATACOORD -->|Coordinates| ETCD_PROXY
-    ROOTcoord -->|Storage| MINIO_PROXY
-    QUERYcoord -->|Storage| MINIO_PROXY
-    INDEXcoord -->|Storage| MINIO_PROXY
-    DATACOORD -->|Storage| MINIO_PROXY
-    ROOTcoord -->|Messaging| PULSAR_PROXY
-    QUERYcoord -->|Messaging| PULSAR_PROXY
-    INDEXcoord -->|Messaging| PULSAR_PROXY
-    DATACOORD -->|Messaging| PULSAR_PROXY
-
-    %% Internal Milvus dependencies
-    QUERYNODE1 -->|Reports to| QUERYCOORD
-    QUERYNODE2 -->|Reports to| QUERYCOORD
-    QUERYNODE3 -->|Reports to| QUERYCOORD
-    INDEXNODE1 -->|Reports to| INDEXCOORD
-    INDEXNODE2 -->|Reports to| INDEXCOORD
-    INDEXNODE3 -->|Reports to| INDEXCOORD
-    DATANODE1 -->|Reports to| DATACOORD
-    DATANODE2 -->|Reports to| DATACOORD
-    DATANODE3 -->|Reports to| DATACOORD
-
-    %% External access for monitoring and GUI
-    GRAFANA -->|Monitors| PROMETHEUS
-    PROMETHEUS -->|Scrapes| NODE_EXPORTER
-    PROMETHEUS -->|Scrapes| MILVUS_PROXY
-    PROMETHEUS -->|Scrapes| MINIO_PROXY
-    MILVUS_GUI -->|Connects to| MILVUS_PROXY
-
-    %% Pulsar internal dependencies
-    PULSAR_INIT -->|Configures| ZK1
-    PULSAR_INIT -->|Configures| ZK2
-    PULSAR_INIT -->|Configures| ZK3
-    BOOKIE1 -->|Depends on| ZK1
-    BOOKIE2 -->|Depends on| ZK2
-    BOOKIE3 -->|Depends on| ZK3
-    BROKER1 -->|Depends on| BOOKIE1
-    BROKER2 -->|Depends on| BOOKIE2
-    BROKER3 -->|Depends on| BOOKIE3
-    PROXY1 -->|Routes to| BROKER1
-    PROXY2 -->|Routes to| BROKER2
-    PROXY3 -->|Routes to| BROKER3
-    PULSAR_PROXY -->|Load Balances| PROXY1
-    PULSAR_PROXY -->|Load Balances| PROXY2
-    PULSAR_PROXY -->|Load Balances| PROXY3
-
-    %% Etcd internal load balancing
-    ETCD_PROXY -->|Load Balances| ETCD0
-    ETCD_PROXY -->|Load Balances| ETCD1
-    ETCD_PROXY -->|Load Balances| ETCD2
-
-    %% MinIO internal load balancing
-    MINIO_PROXY -->|Load Balances| MINIO0
-    MINIO_PROXY -->|Load Balances| MINIO1
-    MINIO_PROXY -->|Load Balances| MINIO2
-
-    %% Notes section with architecture and best practices
-    subgraph Notes
-        NOTE1[Note: Networks are isolated for security.<br>External Network exposes public endpoints.<br>HAProxy used for load balancing.<br>Persistent volumes ensure data durability.<br>Client node represents external applications/users.]
-        NOTE2[Best Practices:<br>- Use strong, unique passwords.<br>- Monitor with Prometheus/Grafana.<br>- Regularly back up volumes.<br>- Scale nodes based on load.<br>- Enable health checks for reliability.<br>- Secure client connections with authentication.]
+    subgraph Prometheus_Network["prometheus-network"]
+        Prometheus["prometheus<br>Port: 9090"]
+        Grafana["grafana<br>Port: 3000"]
+        style Prometheus fill:#00ffff,stroke:#ff00ff,stroke-width:2px
+        style Grafana fill:#00ffff,stroke:#ff00ff,stroke-width:2px
     end
 
-    %% Styling for nodes and connections
-    classDef default fill:#ffffff,stroke:#333,stroke-width:1px;
-    linkStyle default stroke:#888,stroke-width:2px;
-    %% Client connections # Neon Pink
-    linkStyle 0,1,2 stroke:#FF00FF,stroke-width:2px;
-    %% Milvus to Etcd  # Neon Cyan
-    linkStyle 3,6,7,8,9 stroke:#00FFFF,stroke-width:2px;
-    %% Milvus to MinIO # Neon Red
-    linkStyle 4,10,11,12,13 stroke:#FF0000,stroke-width:2px;
-    %% Milvus to Pulsar # Neon Green
-    linkStyle 5,14,15,16,17 stroke:#00FF00,stroke-width:2px;
-    %% Internal Milvus # Neon Yellow
-    linkStyle 18,19,20,21,22,23,24,25,26 stroke:#FFFF00,stroke-width:2px;
-    %% Monitoring # Neon Orange
-    linkStyle 27,28,29,30 stroke:#FF4500,stroke-width:2px;
-    %% Milvus GUI  # Neon Hot Pink
-    linkStyle 31 stroke:#FF69B4,stroke-width:2px;
-    %% Pulsar Internal # Neon Green
-    linkStyle 32,33,34,35,36,37,38,39,40,41,42,43,44,45,46 stroke:#00FF00,stroke-width:2px;
-    %% Etcd Internal # Neon Cyan
-    linkStyle 47,48,49 stroke:#00FFFF,stroke-width:2px;
-    %% MinIO Internal # Neon Red
-    linkStyle 50,51,52 stroke:#FF0000,stroke-width:2px;
-    
+    %% Volume Mounts Layer
+    subgraph Volumes["Persistent Volumes"]
+        HaproxyData["haproxy_data"]
+        Etcd0Data["etcd0_data"]
+        Etcd1Data["etcd1_data"]
+        Etcd2Data["etcd2_data"]
+        MinioData0["minio_data0"]
+        MinioData1["minio_data1"]
+        MinioData2["minio_data2"]
+        ZookeeperData1["zookeeper_data1"]
+        ZookeeperData2["zookeeper_data2"]
+        ZookeeperData3["zookeeper_data3"]
+        BookkeeperData1["bookkeeper_data1"]
+        BookkeeperData2["bookkeeper_data2"]
+        BookkeeperData3["bookkeeper_data3"]
+        PrometheusData["prometheus_data"]
+        GrafanaData["grafana_data"]
+        style HaproxyData fill:#ff00ff,stroke:#00ff00,stroke-width:2px
+        style Etcd0Data fill:#ff00ff,stroke:#00ff00,stroke-width:2px
+        style Etcd1Data fill:#ff00ff,stroke:#00ff00,stroke-width:2px
+        style Etcd2Data fill:#ff00ff,stroke:#00ff00,stroke-width:2px
+        style MinioData0 fill:#ff00ff,stroke:#00ff00,stroke-width:2px
+        style MinioData1 fill:#ff00ff,stroke:#00ff00,stroke-width:2px
+        style MinioData2 fill:#ff00ff,stroke:#00ff00,stroke-width:2px
+        style ZookeeperData1 fill:#ff00ff,stroke:#00ff00,stroke-width:2px
+        style ZookeeperData2 fill:#ff00ff,stroke:#00ff00,stroke-width:2px
+        style ZookeeperData3 fill:#ff00ff,stroke:#00ff00,stroke-width:2px
+        style BookkeeperData1 fill:#ff00ff,stroke:#00ff00,stroke-width:2px
+        style BookkeeperData2 fill:#ff00ff,stroke:#00ff00,stroke-width:2px
+        style BookkeeperData3 fill:#ff00ff,stroke:#00ff00,stroke-width:2px
+        style PrometheusData fill:#ff00ff,stroke:#00ff00,stroke-width:2px
+        style GrafanaData fill:#ff00ff,stroke:#00ff00,stroke-width:2px
+    end
+
+    %% Connections
+    %% External to Milvus
+    HAProxy -->|19530, 9091| MilvusEntrypoint
+    HAProxy -->|3300| MilvusGUI
+    MilvusEntrypoint -->|19530, 9091| MilvusProxy
+    MilvusGUI -->|19530| MilvusEntrypoint
+
+    %% Milvus Internal Connections
+    MilvusProxy --> RootCoord
+    RootCoord --> QueryCoord
+    QueryCoord --> QueryNode1
+    QueryCoord --> QueryNode2
+    QueryCoord --> QueryNode3
+    RootCoord --> IndexCoord
+    IndexCoord --> IndexNode1
+    IndexCoord --> IndexNode2
+    IndexCoord --> IndexNode3
+    RootCoord --> DataCoord
+    DataCoord --> DataNode1
+    DataCoord --> DataNode2
+    DataCoord --> DataNode3
+
+    %% Milvus to Other Services
+    HAProxy -->|2379| EtcdProxy
+    HAProxy -->|9000, 9001| MinioProxy
+    HAProxy -->|6650, 8080| PulsarProxy
+    HAProxy -->|9090| Prometheus
+    HAProxy -->|3000| Grafana
+
+    %% Etcd Connections
+    EtcdProxy -->|2379| Etcd0
+    EtcdProxy -->|2379| Etcd1
+    EtcdProxy -->|2379| Etcd2
+    Etcd0 -->|2380| Etcd1
+    Etcd1 -->|2380| Etcd2
+    Etcd2 -->|2380| Etcd0
+
+    %% Minio Connections
+    MinioProxy -->|9000, 9001| Minio0
+    MinioProxy -->|9000, 9001| Minio1
+    MinioProxy -->|9000, 9001| Minio2
+
+    %% Pulsar Connections
+    PulsarProxy -->|6650, 8080| Proxy1
+    PulsarProxy -->|6650, 8080| Proxy2
+    PulsarProxy -->|6650, 8080| Proxy3
+    Proxy1 -->|6650, 8080| Broker1
+    Proxy2 -->|6650, 8080| Broker2
+    Proxy3 -->|6650, 8080| Broker3
+    Broker1 -->|3181| Bookie1
+    Broker2 -->|3181| Bookie2
+    Broker3 -->|3181| Bookie3
+    Bookie1 -->|2181| Zookeeper1
+    Bookie2 -->|2181| Zookeeper2
+    Bookie3 -->|2181| Zookeeper3
+    Zookeeper1 -->|2888, 3888| Zookeeper2
+    Zookeeper2 -->|2888, 3888| Zookeeper3
+    Zookeeper3 -->|2888, 3888| Zookeeper1
+    PulsarInit -->|2181| Zookeeper1
+    PulsarInit -->|2181| Zookeeper2
+    PulsarInit -->|2181| Zookeeper3
+
+    %% Prometheus and Grafana
+    Prometheus -->|9100| NodeExporter
+    Grafana -->|9090| Prometheus
+
+    %% Volume Mount Connections
+    HAProxy --> HaproxyData
+    Etcd0 --> Etcd0Data
+    Etcd1 --> Etcd1Data
+    Etcd2 --> Etcd2Data
+    Minio0 --> MinioData0
+    Minio1 --> MinioData1
+    Minio2 --> MinioData2
+    Zookeeper1 --> ZookeeperData1
+    Zookeeper2 --> ZookeeperData2
+    Zookeeper3 --> ZookeeperData3
+    Bookie1 --> BookkeeperData1
+    Bookie2 --> BookkeeperData2
+    Bookie3 --> BookkeeperData3
+    Prometheus --> PrometheusData
+    Grafana --> GrafanaData
+
+    %% Notes
+    classDef note fill:#333,stroke:#00ff00,stroke-width:2px,color:#fff
+    Note1["Note: HAProxy acts as the main entry point, routing traffic to Milvus, Etcd, Minio, Pulsar, Prometheus, and Grafana services."]:::note
+    Note2["Note: Each service network is isolated (internal: true) except external-network, ensuring secure communication."]:::note
+    Note3["Note: Persistent volumes ensure data durability for Etcd, Minio, Pulsar, Prometheus, and Grafana."]:::note
+    Note4["Note: Milvus components (RootCoord, QueryCoord, etc.) connect to Etcd, Minio, and Pulsar via their respective proxies."]:::note
 ```
 
 ## Testing the Milvus Cluster

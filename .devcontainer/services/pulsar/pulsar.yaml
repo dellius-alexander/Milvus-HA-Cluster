@@ -7,6 +7,7 @@ networks:
     driver: bridge
     ipam:
       driver: default
+
 ####################################################################
 # Define persistent volumes for data durability
 volumes:
@@ -483,10 +484,10 @@ services:
     # mem_limit: 1024m
     networks:
       - pulsar-network
-      - milvus
-    ports:
-      - "6650:6650"
-      - "8080:8080"
+    expose:
+      - "6650"  # Pulsar binary protocol
+      - "8080"  # HTTP admin API
+      - "8404"  # Pulsar metrics
     depends_on:
       proxy1:
         condition: service_started
@@ -504,4 +505,4 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-##########################################################################
+

@@ -7,11 +7,7 @@ networks:
     driver: bridge
     ipam:
       driver: default
-  external-network:
-    name: external-network
-    driver: bridge
-    ipam:
-      driver: default
+
 ####################################################################
 # Define persistent volumes for data durability
 volumes:
@@ -30,23 +26,25 @@ x-variables:
       context: .
       dockerfile: minio.Dockerfile
 #    image: minio/minio:RELEASE.2025-04-08T15-41-24Z
-    command: ["server", "--console-address", ":9001", "http://minio0/data", "http://minio1/data", "http://minio2/data"]
+    command: ["server", "--console-address", ":9001", "http://minio{0...2}/data"]
     expose:
       - "9000"
       - "9001"
     environment:
       MINIO_ROOT_USER : minioadmin
       MINIO_ROOT_PASSWORD: "WW91ckdyYWZhbmFTdHJvbmdQYXNzd29yZDEyMw"
+      MINIO_OPTS: "--console-address :9001"
+      MINIO_VOLUMES: "http://minio{0...2}/data"
       MINIO_REGION_NAME: us-east-1
       MINIO_PROMETHEUS_AUTH_TYPE: public
       MINIO_NOTIFY_WEBHOOK_ENABLE: "true"
-      MINIO_NOTIFY_WEBHOOK_URL: "http://localhost:9000/minio/notify"
+      MINIO_NOTIFY_WEBHOOK_URL: "http://127.0.0.1:9000/minio/notify"
       MINIO_NOTIFY_WEBHOOK_KMS_ENABLE: "true"
-      MINIO_NOTIFY_WEBHOOK_KMS_URL: "http://localhost:9000/minio/notify"
+      MINIO_NOTIFY_WEBHOOK_KMS_URL: "http://127.0.0.1:9000/minio/notify"
       MINIO_NOTIFY_WEBHOOK_KMS_REGION: us-east-1
       MINIO_NOTIFY_WEBHOOK_KMS_ACCESS_KEY: minioadmin
       MINIO_NOTIFY_WEBHOOK_KMS_SECRET_KEY: "WW91ckdyYWZhbmFTdHJvbmdQYXNzd29yZDEyMw"
-      MINIO_SERVER_URL: http://localhost:9000
+      MINIO_SERVER_URL: "http://127.0.0.1:9000"
     healthcheck:
       test: ["CMD", "curl", "-I", "http://localhost:9000/minio/health/live"]
       interval: 30s
@@ -100,10 +98,10 @@ services:
     hostname: minio-proxy
     command: ["haproxy", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
 #    image: haproxy:latest
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-      - "28404:8404"
+    expose:
+      - "9000"
+      - "9001"
+      - "8404"   # haproxy stats site
     depends_on:
       minio0:
         condition: service_healthy
@@ -124,5 +122,4 @@ services:
         condition: on-failure
     networks:
       - minio-network
-      - external-network
 
