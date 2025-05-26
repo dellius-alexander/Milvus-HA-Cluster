@@ -14,7 +14,7 @@ This document provides a comprehensive overview of a Milvus cluster implementati
   - [Pulsar](#pulsar)
   - [HAProxy](#haproxy)
   - [Why Cluster Implementation](#why-cluster-implementation)
-- [Cluster Architecture Diagram](#cluster-architecture-diagram)
+- [Milvus Cluster Architecture Diagram](#milvus-cluster-architectural-diagram)
 - [Testing the Milvus Cluster](#testing-the-milvus-cluster)
   - [Test 1: Verify Milvus Proxy Health](#test-1-verify-milvus-proxy-health)
   - [Test 2: Connect to Milvus GUI](#test-2-connect-to-milvus-gui)
