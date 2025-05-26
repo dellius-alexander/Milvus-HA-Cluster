@@ -9,6 +9,7 @@ LABEL description="Custom HAProxy image for Minio high-availability setup"
 COPY cfg/haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
 
 # Set permissions for configuration file
+RUN groupadd -r haproxy 2>/dev/null || true && useradd -r -g haproxy haproxy 2>/dev/null || true
 RUN chown haproxy:haproxy /usr/local/etc/haproxy/haproxy.cfg
 RUN chmod 644 /usr/local/etc/haproxy/haproxy.cfg
 

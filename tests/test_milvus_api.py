@@ -1,5 +1,8 @@
 import asyncio
+import os
 import unittest
+
+import pytest
 from pymilvus import FieldSchema, DataType, Collection
 
 from src.logger import getLogger as GetLogger
@@ -16,13 +19,13 @@ class TestMilvusAPI(unittest.TestCase):
     async def setUp(self):
         self.api = None
         with ConnectAPI(
-            alias="test_db",
-            user="root",
-            password="Milvus",
-            host="10.1.0.99",
-            port="19530",
-            timeout=10,
-            **{"db_name": "test_db"}
+                alias=os.environ["MILVUS_DB"],
+                uri=os.environ["MILVUS_DB_URI"],
+                user=os.environ["MILVUS_USER"],
+                password=os.environ["MILVUS_PASSWORD"],
+                db_name=os.environ["MILVUS_DB"],
+                token=os.environ["MILVUS_DB_TOKEN"],
+                timeout=10
     ) as connect_api:
             log.info(f"ConnectAPI: \n {connect_api}")
             # Initialize the MilvusAPI with the connection
@@ -55,3 +58,7 @@ class TestMilvusAPI(unittest.TestCase):
             ids = await self.api.insert("test_collection", [{"vector": [0.1] * 128}], None, "test_db")
             self.assertTrue(isinstance(ids, list))
         asyncio.run(run_test())
+
+
+if __name__ == "__main__":
+    pytest.main(["-v", __file__])

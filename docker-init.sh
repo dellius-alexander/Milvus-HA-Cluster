@@ -17,7 +17,7 @@ case "$1" in
      --remove-orphans \
      --force-recreate \
      -d \
-     --build
+     --build "${2:-}"
     ;;
   "stop")
     echo "Stopping Docker..."

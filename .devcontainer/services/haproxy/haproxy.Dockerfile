@@ -9,6 +9,7 @@ LABEL description="Custom HAProxy image for Milvus high-availability setup"
 COPY cfg/haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
 
 # Set permissions for configuration file
+RUN groupadd -r haproxy 2>/dev/null || true && useradd -r -g haproxy haproxy 2>/dev/null || true
 RUN chown haproxy:haproxy /usr/local/etc/haproxy/haproxy.cfg
 RUN chmod 644 /usr/local/etc/haproxy/haproxy.cfg
 
@@ -20,5 +21,6 @@ EXPOSE 9000 9001 8404 2379 8080 6650
 
 # Run HAProxy as the haproxy user
 USER haproxy
+
 #ENTRYPOINT ["/usr/local/sbin/haproxy"]
 CMD ["haproxy", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]

@@ -9,6 +9,7 @@ LABEL description="Custom HAPROXY configuration to serve as load balancer for pu
 COPY cfg/haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
 
 # Set permissions for configuration file
+RUN groupadd -r haproxy 2>/dev/null || true && useradd -r -g haproxy haproxy 2>/dev/null || true
 RUN chown haproxy:haproxy /usr/local/etc/haproxy/haproxy.cfg
 RUN chmod 644 /usr/local/etc/haproxy/haproxy.cfg
 

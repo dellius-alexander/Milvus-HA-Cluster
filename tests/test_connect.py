@@ -28,5 +28,4 @@ class TestConnect(TestCase):
 
 
 if __name__ == "__main__":
-    import sys
-    sys.exit(pytest.main(["-v", __file__]))
+    pytest.main(["-v", __file__])

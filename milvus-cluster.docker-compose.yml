@@ -209,13 +209,6 @@ services:
       file: .devcontainer/services/pulsar/pulsar.yaml
       service: pulsar-proxy
 
-#  ####################################################################
-#  # HAProxy service for load balancing
-#  haproxy:
-#    extends:
-#      file: devcontainer/services/haproxy/haproxy.yaml
-#      service: haproxy
-
   ####################################################################
   # Milvus cluster services
   rootcoord:
@@ -295,11 +288,12 @@ services:
       service: milvus-entrypoint
 
   ####################################################################
-  # Milvus Proxy service
+  # HAProxy service for load balancing
   haproxy:
-      extends:
-        file: .devcontainer/services/haproxy/haproxy.yaml
-        service: haproxy
+    extends:
+      file: .devcontainer/services/haproxy/haproxy.yaml
+      service: haproxy
+
   ####################################################################
   # Node exporter for host metrics
   node_exporter:
