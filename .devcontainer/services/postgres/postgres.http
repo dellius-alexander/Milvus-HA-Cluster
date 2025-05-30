@@ -1,0 +1,89 @@
+# PostgreSQL Cluster HAProxy Test Requests
+# This file contains HTTP requests to test the HAProxy load balancer for the PostgreSQL cluster.
+# Direct PostgreSQL queries are not possible with curl (PostgreSQL uses TCP, not HTTP).
+# These requests target the HAProxy stats page to verify backend server status.
+
+# Variables for HAProxy stats page
+@host = 10.1.0.99
+@port = 8080
+@postgres_port = 5432
+@stats_path = /stats
+@stats_user = admin
+@stats_password = admin123
+# HAProxy stats page token (base64 encoded credentials for <stats_user>:<stats_password>)
+@token = YWRtaW46YWRtaW4xMjM=
+@base_url = http://{{host}}:{{port}}{{stats_path}}
+
+# Request 1: Get HAProxy stats page (HTML)
+# Verifies that the HAProxy stats page is accessible
+GET {{base_url}}
+Authorization: Basic {{token}}
+
+###
+
+# Request 2: Get HAProxy stats in CSV format
+# Retrieves detailed metrics in CSV format for programmatic analysis
+GET {{base_url}};csv
+Authorization: Basic {{token}}
+
+###
+
+# Request 3: Check HAProxy stats with JSON format
+# Retrieves stats in JSON format for structured data
+GET {{base_url}};json
+Authorization: Basic {{token}}
+
+###
+
+# Request 4: Verify HAProxy stats page with explicit credentials
+# Tests authentication explicitly
+GET http://{{stats_user}}:{{stats_password}}@{{host}}:{{port}}{{stats_path}}
+
+###
+
+# Request 5: Test stats page with incorrect credentials
+# Should return 401 Unauthorized to verify security
+GET {{base_url}}
+Authorization: Basic wronguser:wrongpass
+
+###
+
+# Request 6: Check HAProxy stats for specific backend (postgres_backend)
+# Filters stats for the PostgreSQL backend
+GET {{base_url}};select=backend_postgres
+Authorization: Basic {{token}}
+
+###
+
+# Request 7: Check HAProxy stats for specific frontend (frontend_postgres)
+# Filters stats for the PostgreSQL frontend
+GET {{base_url}};select=frontend_postgres
+Authorization: Basic {{token}}
+
+###
+
+# Request 8: Test stats page with custom refresh interval
+# Tests if the stats page respects a custom refresh interval
+GET {{base_url}};refresh=10s
+Authorization: Basic {{token}}
+
+###
+
+# Request 9: Check HAProxy stats for specific server (postgres-master)
+# Verifies the status of the postgres-master server
+GET {{base_url}};select=postgres-master
+Authorization: Basic {{token}}
+
+###
+
+# Request 10: Test HAProxy stats page with verbose output
+# Requests detailed stats with additional columns
+GET {{base_url}};csv;desc
+Authorization: Basic {{token}}
+
+###
+
+# Request 11: Check HAProxy stats for all backends
+GET http://{{host}}:{{postgres_port}}/checkstatus
+
+

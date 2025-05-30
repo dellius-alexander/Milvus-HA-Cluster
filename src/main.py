@@ -21,7 +21,7 @@ async def main():
             password=os.environ["MILVUS_PASSWORD"],
             db_name=os.environ["MILVUS_DB"],
             token=os.environ["MILVUS_DB_TOKEN"],
-            timeout=10
+            timeout=30
         )
         with connect_api:
             log.info(f"Connected to Milvus successfully with {connect_api}")

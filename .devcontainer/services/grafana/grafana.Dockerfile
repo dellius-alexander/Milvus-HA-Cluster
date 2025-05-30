@@ -1,4 +1,4 @@
-FROM grafana/grafana:10.4.0
+FROM grafana/grafana:8.5.27-ubuntu
 
 # Metadata for the image
 LABEL maintainer="Dellius Alexander <admin@hyfisolutions.com>"

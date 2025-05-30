@@ -38,6 +38,12 @@ x-variables:
         - pulsar-network
         - etcd-network
         - minio-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9091/healthz" ]
+      interval: 30s
+      start_period: 90s
+      timeout: 20s
+      retries: 3
 
   milvus_environment_vars: &milvus_environment_vars
     ETCD_ENDPOINTS: etcd-proxy:2379
@@ -94,12 +100,6 @@ services:
       - pulsar-network
       - etcd-network
       - minio-network
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9091/healthz" ]
-      interval: 30s
-      start_period: 90s
-      timeout: 20s
-      retries: 3
 
   querycoord:
     <<: *milvus_common

@@ -5,7 +5,7 @@
 @milvus_port = 19530
 @milvus_user = root
 @milvus_pass = a6382b679b3121c203226870c344a223d1d2d70587a5a4aa
-@milvus_token = "root:a6382b679b3121c203226870c344a223d1d2d70587a5a4aa"
+@milvus_token = "cm9vdDphNjM4MmI2NzliMzEyMWMyMDMyMjY4NzBjMzQ0YTIyM2QxZDJkNzA1ODdhNWE0YWE="
 @haproxy_port_etcd = 2379
 @haproxy_port_minio = 9000
 @haproxy_port_pulsar = 6650
@@ -20,23 +20,16 @@
 # Milvus Tests
 
 # Test 1: Check Milvus Proxy Health
-GET http://{{host}}:{{milvus_port}}/v1/healthz
-Authorization: Bearer {{milvus_token}}
-Content-Type: application/json
-Accept: application/json
+GET http://{{host}}:9091/healthz
+
 
 
 ###
 
 # Test 2: Login to Milvus
-POST http://{{host}}:{{milvus_port}}/v1/login
-Content-Type: application/json
-Accept: application/json
+GET http://{{host}}:{{milvus_port}}
+Authorization: Bearer {{milvus_token}}
 
-{
-  "username": "{{milvus_user}}",
-  "password": "{{milvus_pass}}"
-}
 
 ###
 

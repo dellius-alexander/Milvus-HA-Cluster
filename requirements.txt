@@ -1,6 +1,7 @@
 # Milvus dependencies
 colorlog
 pymilvus
+pymilvus[model]
 tenacity
 openai
 requests

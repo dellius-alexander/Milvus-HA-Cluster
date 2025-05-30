@@ -1,0 +1,220 @@
+# docker-compose.yml
+# Define networks so our containers can talk to each other securely
+networks:
+  # Internal network for PostgreSQL master, replicas, and HAProxy
+  postgres-cluster:
+    name: postgres-cluster
+    driver: bridge
+    internal: true
+  # External network for the client to connect to HAProxy
+  external-network:
+    name: external-network
+    driver: bridge
+    external: true
+
+# Define volumes to store data so it doesn't get lost when containers restart
+volumes:
+  master-data: {} # Storage for the master database
+  replica1-data: {} # Storage for replica 1
+  replica2-data: {} # Storage for replica 2
+  replica3-data: {} # Storage for replica 3
+  archive: {} # Shared storage for WAL archives
+
+# Define secrets for sensitive data like passwords
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt # Admin password
+  repl_password:
+    file: ./secrets/repl_password.txt # Replication user password
+
+# Define services (the containers we want to run)
+services:
+  # The main PostgreSQL server (master) where we write data
+  postgres-master:
+    build:
+      context: . # Build from the current directory
+      dockerfile: postgres.Dockerfile
+      args:
+        HOSTNAME: postgres-master
+    container_name: postgres-master
+    hostname: postgres-master
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
+      - POSTGRES_DB=milvus
+      - PGDATA=/var/lib/postgresql/data
+      - REPL_USER=repl
+      - REPL_PASSWORD_FILE=/run/secrets/repl_password
+    volumes:
+      - master-data:/var/lib/postgresql/data
+      - archive:/var/lib/postgresql/archive
+    expose:
+      - "5432" # Port for PostgreSQL
+    networks:
+      - postgres-cluster
+    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+    restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d milvus"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Replica 1: A copy of the master for reading data
+  postgres-replica1:
+    build:
+      context: .
+      dockerfile: postgres.Dockerfile
+      args:
+        HOSTNAME: postgres-replica1
+    container_name: postgres-replica1
+    hostname: postgres-replica1
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
+      - POSTGRES_DB=milvus
+      - PGDATA=/var/lib/postgresql/data
+      - REPL_USER=repl
+      - REPL_PASSWORD_FILE=/run/secrets/repl_password
+    volumes:
+      - replica1-data:/var/lib/postgresql/data
+      - archive:/var/lib/postgresql/archive
+    expose:
+      - "5432"
+    networks:
+      - postgres-cluster
+    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+    restart: on-failure
+    depends_on:
+      postgres-master:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d milvus"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Replica 2: Another copy for reading data
+  postgres-replica2:
+    build:
+      context: .
+      dockerfile: postgres.Dockerfile
+      args:
+        HOSTNAME: postgres-replica2
+    container_name: postgres-replica2
+    hostname: postgres-replica2
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
+      - POSTGRES_DB=milvus
+      - PGDATA=/var/lib/postgresql/data
+      - REPL_USER=repl
+      - REPL_PASSWORD_FILE=/run/secrets/repl_password
+    volumes:
+      - replica2-data:/var/lib/postgresql/data
+      - archive:/var/lib/postgresql/archive
+    expose:
+      - "5432"
+    networks:
+      - postgres-cluster
+    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+    restart: on-failure
+    depends_on:
+      postgres-master:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d milvus"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Replica 3: Third copy for reading data
+  postgres-replica3:
+    build:
+      context: .
+      dockerfile: postgres.Dockerfile
+      args:
+        HOSTNAME: postgres-replica3
+    container_name: postgres-replica3
+    hostname: postgres-replica3
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
+      - POSTGRES_DB=milvus
+      - PGDATA=/var/lib/postgresql/data
+      - REPL_USER=repl
+      - REPL_PASSWORD_FILE=/run/secrets/repl_password
+    volumes:
+      - replica3-data:/var/lib/postgresql/data
+      - archive:/var/lib/postgresql/archive
+    expose:
+      - "5432"
+    networks:
+      - postgres-cluster
+    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+    restart: on-failure
+    depends_on:
+      postgres-master:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d milvus"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # HAProxy: Directs traffic to the master for writes and replicas for reads
+  postgres-haproxy:
+    build:
+      context: .
+      dockerfile: haproxy.Dockerfile
+    container_name: postgres-haproxy
+    ports:
+      - "5432:5432" # Master for writes
+      - "5433:5433" # Replica 1 for reads
+      - "5434:5434" # Replica 2 for reads
+      - "5435:5435" # Replica 3 for reads
+      - "8080:8080" # HAProxy stats page
+    networks:
+      - postgres-cluster
+      - external-network
+    depends_on:
+      postgres-master:
+        condition: service_healthy
+      postgres-replica1:
+        condition: service_healthy
+      postgres-replica2:
+        condition: service_healthy
+      postgres-replica3:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "haproxy", "-v"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Client: Tests the database cluster
+  client:
+    build:
+      context: .
+      dockerfile: client.Dockerfile
+    container_name: postgres-tester
+    networks:
+      - external-network
+    depends_on:
+      postgres-haproxy:
+        condition: service_healthy
+    environment:
+      - PG_HOST=postgres-haproxy
+      - PG_PORT=5432
+      - PG_USER=admin
+      - PG_PASSWORD_FILE=/run/secrets/postgres_password
+      - PG_DATABASE=milvus
+      - HAPROXY_STATS_URL=http://postgres-haproxy:8080/stats
+      - HAPROXY_STATS_USER=admin
+      - HAPROXY_STATS_PASSWORD=admin123
+    secrets:
+      - postgres_password

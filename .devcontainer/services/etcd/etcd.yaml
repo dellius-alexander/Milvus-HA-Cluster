@@ -72,7 +72,7 @@ services:
   # Etcd service for metadata storage
   # etcd replica 1
   etcd0:
-#    container_name: etcd0
+    container_name: etcd0
     hostname: etcd0
     environment:
       <<: *etcd_environment_vars
@@ -85,7 +85,7 @@ services:
 
   # etcd replica 2
   etcd1:
-#    container_name: etcd1
+    container_name: etcd1
     hostname: etcd1
     environment:
       <<: *etcd_environment_vars
@@ -98,7 +98,7 @@ services:
 
   # etcd replica 3
   etcd2:
-#    container_name: etcd2
+    container_name: etcd2
     hostname: etcd2
     environment:
       <<: *etcd_environment_vars
