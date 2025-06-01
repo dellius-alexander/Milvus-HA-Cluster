@@ -31,6 +31,8 @@ RUN apt-get update -y && \
 
 # Copy the test script
 COPY postgres_test.sh /usr/local/bin/postgres_test.sh
+COPY secrets/postgres_password.txt /run/secrets/postgres_password
+COPY secrets/repl_password.txt /run/secrets/repl_password
 
 # Make the test script executable
 RUN chmod +x /usr/local/bin/postgres_test.sh

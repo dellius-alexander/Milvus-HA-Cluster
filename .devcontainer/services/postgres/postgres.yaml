@@ -23,39 +23,56 @@ volumes:
 # Define secrets for sensitive data like passwords
 secrets:
   postgres_password:
+    name: postgres_password # Name of the secret
     file: ./secrets/postgres_password.txt # Admin password
   repl_password:
+    name: repl_password # Name of the secret
     file: ./secrets/repl_password.txt # Replication user password
+  milvus_password:
+    name: milvus_password # Name of the secret
+    file: ./secrets/milvus_password.txt # Milvus password
 
 # Define services (the containers we want to run)
 services:
   # The main PostgreSQL server (master) where we write data
   postgres-master:
-    build:
-      context: . # Build from the current directory
-      dockerfile: postgres.Dockerfile
-      args:
-        HOSTNAME: postgres-master
+#    build:
+#      context: . # Build from the current directory
+#      dockerfile: postgres.Dockerfile
+#      args:
+#        HOSTNAME: postgres-master
+#        POSTGRES_USER: ${POSTGRES_USER}
+#        PGDATA: ${PGDATA}
+    image: postgres:${PG_MAJOR}
     container_name: postgres-master
     hostname: postgres-master
+    labels:
+      - "project=pg-cluster"
+      - "environment=development"
     environment:
-      - POSTGRES_USER=admin
+      - PG_MAJOR=${PG_MAJOR}
       - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
-      - POSTGRES_DB=milvus
-      - PGDATA=/var/lib/postgresql/data
-      - REPL_USER=repl
       - REPL_PASSWORD_FILE=/run/secrets/repl_password
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - PGDATA=${PGDATA}
+      - REPL_USER=${REPL_USER}
+      - MILVUS_PASSWORD=${MILVUS_PASSWORD}
+    secrets:
+      - postgres_password
+      - repl_password
     volumes:
-      - master-data:/var/lib/postgresql/data
-      - archive:/var/lib/postgresql/archive
+      - master-data:${PGDATA}
+      - archive:${PGDATA_BASE}/archive
     expose:
-      - "5432" # Port for PostgreSQL
+      - ${PGPORT} # Port for PostgreSQL
     networks:
       - postgres-cluster
-    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+#    entrypoint: ["/custom-entrypoint.sh", "postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+#    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
     restart: on-failure
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d milvus"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -63,108 +80,144 @@ services:
 
   # Replica 1: A copy of the master for reading data
   postgres-replica1:
-    build:
-      context: .
-      dockerfile: postgres.Dockerfile
-      args:
-        HOSTNAME: postgres-replica1
+#    build:
+#      context: .
+#      dockerfile: postgres.Dockerfile
+#      args:
+#        HOSTNAME: postgres-replica1
+#        POSTGRES_USER: ${POSTGRES_USER}
+#        PGDATA: ${PGDATA}
+    image: postgres:${PG_MAJOR}
     container_name: postgres-replica1
     hostname: postgres-replica1
+    labels:
+      - "project=pg-cluster"
+      - "environment=development"
     environment:
-      - POSTGRES_USER=admin
+      - PG_MAJOR=${PG_MAJOR}
       - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
-      - POSTGRES_DB=milvus
-      - PGDATA=/var/lib/postgresql/data
-      - REPL_USER=repl
       - REPL_PASSWORD_FILE=/run/secrets/repl_password
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - PGDATA=${PGDATA}
+      - REPL_USER=${REPL_USER}
+      - MILVUS_PASSWORD=${MILVUS_PASSWORD}
+    secrets:
+      - postgres_password
+      - repl_password
     volumes:
-      - replica1-data:/var/lib/postgresql/data
-      - archive:/var/lib/postgresql/archive
+      - replica1-data:${PGDATA}
+      - archive:${PGDATA_BASE}/archive
     expose:
-      - "5432"
+      - ${PGPORT} # Port for PostgreSQL
     networks:
       - postgres-cluster
-    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+#    entrypoint: ["/custom-entrypoint.sh", "postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+#    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
     restart: on-failure
     depends_on:
       postgres-master:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d milvus"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 60s
 
   # Replica 2: Another copy for reading data
   postgres-replica2:
-    build:
-      context: .
-      dockerfile: postgres.Dockerfile
-      args:
-        HOSTNAME: postgres-replica2
+#    build:
+#      context: .
+#      dockerfile: postgres.Dockerfile
+#      args:
+#        HOSTNAME: postgres-replica2
+#        POSTGRES_USER: ${POSTGRES_USER}
+#        PGDATA: ${PGDATA}
+    image: postgres:${PG_MAJOR}
     container_name: postgres-replica2
     hostname: postgres-replica2
+    labels:
+      - "project=pg-cluster"
+      - "environment=development"
     environment:
-      - POSTGRES_USER=admin
+      - PG_MAJOR=${PG_MAJOR}
       - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
-      - POSTGRES_DB=milvus
-      - PGDATA=/var/lib/postgresql/data
-      - REPL_USER=repl
       - REPL_PASSWORD_FILE=/run/secrets/repl_password
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - PGDATA=${PGDATA}
+      - REPL_USER=${REPL_USER}
+      - MILVUS_PASSWORD=${MILVUS_PASSWORD}
+    secrets:
+      - postgres_password
+      - repl_password
     volumes:
-      - replica2-data:/var/lib/postgresql/data
-      - archive:/var/lib/postgresql/archive
+      - replica2-data:${PGDATA}
+      - archive:${PGDATA_BASE}/archive
     expose:
-      - "5432"
+      - ${PGPORT} # Port for PostgreSQL
     networks:
       - postgres-cluster
-    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+#    entrypoint: ["/custom-entrypoint.sh", "postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+#    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
     restart: on-failure
     depends_on:
       postgres-master:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d milvus"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 60s
 
   # Replica 3: Third copy for reading data
   postgres-replica3:
-    build:
-      context: .
-      dockerfile: postgres.Dockerfile
-      args:
-        HOSTNAME: postgres-replica3
+#    build:
+#      context: .
+#      dockerfile: postgres.Dockerfile
+#      args:
+#        HOSTNAME: postgres-replica3
+#        POSTGRES_USER: ${POSTGRES_USER}
+#        PGDATA: ${PGDATA}
+    image: postgres:${PG_MAJOR}
     container_name: postgres-replica3
     hostname: postgres-replica3
+    labels:
+      - "project=pg-cluster"
+      - "environment=development"
     environment:
-      - POSTGRES_USER=admin
+      - PG_MAJOR=${PG_MAJOR}
       - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
-      - POSTGRES_DB=milvus
-      - PGDATA=/var/lib/postgresql/data
-      - REPL_USER=repl
       - REPL_PASSWORD_FILE=/run/secrets/repl_password
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - PGDATA=${PGDATA}
+      - REPL_USER=${REPL_USER}
+      - MILVUS_PASSWORD=${MILVUS_PASSWORD}
+    secrets:
+      - postgres_password
+      - repl_password
     volumes:
-      - replica3-data:/var/lib/postgresql/data
-      - archive:/var/lib/postgresql/archive
+      - replica3-data:${PGDATA}
+      - archive:${PGDATA_BASE}/archive
     expose:
-      - "5432"
+      - ${PGPORT} # Port for PostgreSQL
     networks:
       - postgres-cluster
-    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+#    entrypoint: ["/custom-entrypoint.sh", "postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+#    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
     restart: on-failure
     depends_on:
       postgres-master:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d milvus"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 60s
 
   # HAProxy: Directs traffic to the master for writes and replicas for reads
   postgres-haproxy:
@@ -172,11 +225,13 @@ services:
       context: .
       dockerfile: haproxy.Dockerfile
     container_name: postgres-haproxy
+    hostname: postgres-haproxy
+    labels:
+      - "project=pg-cluster"
+      - "environment=development"
     ports:
       - "5432:5432" # Master for writes
-      - "5433:5433" # Replica 1 for reads
-      - "5434:5434" # Replica 2 for reads
-      - "5435:5435" # Replica 3 for reads
+      - "5433:5433" # Replica 1,2,3 for reads
       - "8080:8080" # HAProxy stats page
     networks:
       - postgres-cluster
@@ -196,25 +251,3 @@ services:
       timeout: 5s
       retries: 3
 
-  # Client: Tests the database cluster
-  client:
-    build:
-      context: .
-      dockerfile: client.Dockerfile
-    container_name: postgres-tester
-    networks:
-      - external-network
-    depends_on:
-      postgres-haproxy:
-        condition: service_healthy
-    environment:
-      - PG_HOST=postgres-haproxy
-      - PG_PORT=5432
-      - PG_USER=admin
-      - PG_PASSWORD_FILE=/run/secrets/postgres_password
-      - PG_DATABASE=milvus
-      - HAPROXY_STATS_URL=http://postgres-haproxy:8080/stats
-      - HAPROXY_STATS_USER=admin
-      - HAPROXY_STATS_PASSWORD=admin123
-    secrets:
-      - postgres_password

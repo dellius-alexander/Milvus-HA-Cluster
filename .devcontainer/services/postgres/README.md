@@ -173,7 +173,18 @@ This diagram shows how the client connects to HAProxy, which routes write querie
    Run `SELECT * FROM test_table;`.
 
 3. **Test Replication**:
-   Connect to a replica (port 5433):
+
+    - Check `postgresql.auto.conf` file
+    ```bash
+    docker exec -it postgres-replica1 cat /var/lib/postgresql/data/postgresql.auto.conf
+    ```
+   
+   - Check replication status:
+   ```bash
+   docker exec -it postgres-master psql -U admin -d mydb -c "SELECT * FROM pg_stat_replication;"
+   ```
+   
+   - Connect to a replica (port 5433):
    ```bash
    docker run -it postgres:17.5 psql -h localhost -p 5433 -U admin -d milvus
    ```
@@ -181,6 +192,23 @@ This diagram shows how the client connects to HAProxy, which routes write querie
 
 4. **Check HAProxy Stats**:
    Open `http://localhost:8080/stats` to monitor server status.
+
+## Troubleshooting
+- **Huge Pages Error**:
+  - **Issue**: Logs show `mmap with MAP_HUGETLB failed, huge pages disabled: Cannot allocate memory`.
+  - **Cause**: The remote host lacks huge pages or sufficient memory.
+  - **Fix**: `huge_pages = off` is set in `postgresql-base.conf`. If you want to use huge pages:
+    - Check available memory: `ssh user@REMOTE_HOST_IP free -m`
+    - Configure huge pages: `ssh user@REMOTE_HOST_IP sudo sysctl -w vm.nr_hugepages=128`
+    - Verify: `ssh user@REMOTE_HOST_IP cat /proc/meminfo | grep HugePages`
+  - **Verify**: Restart the cluster and check logs for no huge pages warning.
+
+- **Replication Issues**:
+  - Check replica logs: `docker logs postgres-replica1`
+  - Verify replication status:
+    ```bash
+    docker exec -it postgres-master psql -U admin -d milvus -c "SELECT * FROM pg_stat_replication;"
+    ```
 
 ## Best Practices
 - Use secrets for passwords.

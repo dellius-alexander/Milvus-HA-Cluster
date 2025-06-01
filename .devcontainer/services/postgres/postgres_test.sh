@@ -14,7 +14,7 @@ log() {
 # Environment variables with defaults
 PG_HOST="${PG_HOST:-postgres-haproxy}"
 PG_WRITE_PORT="${PG_WRITE_PORT:-5432}" # Master port for writes
-PG_READ_PORTS=(5433 5434 5435) # Replica ports for reads
+PG_READ_PORTS=(5433) # Replica ports for reads
 PG_USER="${PG_USER:-admin}"
 PG_DATABASE="${PG_DATABASE:-milvus}"
 HAPROXY_STATS_URL="${HAPROXY_STATS_URL:-http://postgres-haproxy:8080/stats}"
