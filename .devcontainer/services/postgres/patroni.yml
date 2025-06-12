@@ -1,0 +1,421 @@
+# patroni.yml
+# Docker Compose configuration for a Patroni-based PostgreSQL high-availability cluster.
+# Configures a three-node etcd cluster, four Patroni replicas, and an HAProxy instance.
+# Uses Docker secrets for passwords and .pgpass for PostgreSQL authentication.
+
+# Define internal networks for isolation
+networks:
+  patroni-network:
+    name: patroni-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  etcd-network:
+    name: etcd-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  etcd-proxy-network:
+    name: etcd-proxy-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  postgres-proxy-network:
+    name: postgres-proxy-network
+    driver: bridge
+    ipam:
+      driver: default
+
+# Define persistent volumes for data
+volumes:
+  etcd0-data: {}
+  etcd1-data: {}
+  etcd2-data: {}
+  replica0-data: {}
+  replica1-data: {}
+  replica2-data: {}
+  replica3-data: {}
+
+# Define secrets for sensitive data
+secrets:
+  milvus_password:
+    file: .secrets/milvus_password.txt
+  patroni_password:
+    file: .secrets/patroni_password.txt
+  postgres_password:
+    file: .secrets/postgres_password.txt
+  repl_password:
+    file: .secrets/repl_password.txt
+  haproxy_stats_password:
+    file: .secrets/haproxy_stats_password.txt
+  postgres_client_cert:
+    file: .secrets/postgres_client_cert.pem
+  postgres_client_key:
+    file: .secrets/postgres_client_key.pem
+  postgres_ca_cert:
+    file: .secrets/postgres_ca_cert.pem
+  patroni_api_cert:
+    file: .secrets/patroni_api_cert.pem
+  patroni_api_key:
+    file: .secrets/patroni_api_key.pem
+  patroni_ca_cert:
+    file: .secrets/patroni_ca_cert.pem
+
+# Define services
+services:
+  # etcd services (unchanged)
+  etcd0:
+    extends:
+      file: ../etcd/etcd.yaml
+      service: etcd0
+
+  etcd1:
+    extends:
+      file: ../etcd/etcd.yaml
+      service: etcd1
+
+  etcd2:
+    extends:
+      file: ../etcd/etcd.yaml
+      service: etcd2
+
+  etcd-proxy:
+    extends:
+      file: ../etcd/etcd.yaml
+      service: etcd-proxy
+
+  # Patroni PostgreSQL services
+  patroni-replica0:
+    build:
+      context: .
+      dockerfile: patroni.Dockerfile
+      args:
+        PATRONI_NAME: ${PATRONI_NAME:-patroni-replica0}
+        PATRONI_SCOPE: ${PATRONI_SCOPE}
+        PATRONI_NAMESPACE: ${PATRONI_NAMESPACE}
+        PATRONI_RESTAPI_LISTEN: ${PATRONI_RESTAPI_LISTEN}
+        PATRONI_RESTAPI_CONNECT_ADDRESS: patroni-replica0:8008
+        PATRONI_RESTAPI_USERNAME: ${PATRONI_RESTAPI_USERNAME}
+        PATRONI_RESTAPI_PASSWORD_FILE: /run/secrets/patroni_password
+        PATRONI_ETCD3_HOSTS: ${PATRONI_ETCD3_HOSTS}
+        PATRONI_ETCD3_PROTOCOL: ${PATRONI_ETCD3_PROTOCOL}
+        PATRONI_ETCD3_USE_PROXIES: ${PATRONI_ETCD3_USE_PROXIES}
+        PATRONI_POSTGRESQL_LISTEN: ${PATRONI_POSTGRESQL_LISTEN}
+        PATRONI_POSTGRESQL_CONNECT_ADDRESS: patroni-replica0:5432
+        PATRONI_POSTGRESQL_DATA_DIR: ${PATRONI_POSTGRESQL_DATA_DIR}
+        PATRONI_POSTGRESQL_USERNAME: ${PATRONI_POSTGRESQL_USERNAME}
+        POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+        PATRONI_POSTGRESQL_REPLICATION_USERNAME: ${PATRONI_POSTGRESQL_REPLICATION_USERNAME}
+        PATRONI_POSTGRESQL_REPLICATION_PASSWORD_FILE: /run/secrets/repl_password
+        PATRONI_LOG_TYPE: ${PATRONI_LOG_TYPE}
+        PATRONI_LOG_FORMAT: ${PATRONI_LOG_FORMAT}
+        PATRONI_LOG_STATIC_FIELDS: ${PATRONI_LOG_STATIC_FIELDS}
+        PATRONI_LOG_LEVEL: ${PATRONI_LOG_LEVEL}
+        PATRONI_LOG_FILE_NUM: ${PATRONI_LOG_FILE_NUM}
+        PATRONI_LOG_FILE_SIZE: ${PATRONI_LOG_FILE_SIZE}
+        PATRONI_LOG_DATEFORMAT: ${PATRONI_LOG_DATEFORMAT}
+        PATRONI_LOG_HANDLERS: ${PATRONI_LOG_HANDLERS}
+    container_name: patroni-replica0
+    hostname: patroni-replica0
+    labels:
+      - "project=pg-cluster"
+      - "environment=production"
+    env_file:
+      - .env.patroni
+    environment:
+      PATRONI_NAME: ${PATRONI_NAME:-patroni-replica0}
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: patroni-replica0:5432
+      PATRONI_RESTAPI_CONNECT_ADDRESS: patroni-replica0:8008
+    volumes:
+      - replica0-data:${PGDATA}
+#    secrets:
+#      - postgres_password
+#      - repl_password
+#      - milvus_password
+#      - patroni_password
+#      - postgres_client_cert
+#      - postgres_client_key
+#      - postgres_ca_cert
+#      - patroni_api_cert
+#      - patroni_api_key
+#      - patroni_ca_cert
+    expose:
+      - 5432
+      - 8008
+    networks:
+      - patroni-network
+      - etcd-proxy-network
+    depends_on:
+      etcd-proxy:
+        condition: service_healthy
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-u", "${PATRONI_RESTAPI_USERNAME}:$(cat /run/secrets/patroni_password)", "http://localhost:8008/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  patroni-replica1:
+    build:
+      context: .
+      dockerfile: patroni.Dockerfile
+      args:
+        PATRONI_NAME: ${PATRONI_NAME:-patroni-replica1}
+        PATRONI_SCOPE: ${PATRONI_SCOPE}
+        PATRONI_NAMESPACE: ${PATRONI_NAMESPACE}
+        PATRONI_RESTAPI_LISTEN: ${PATRONI_RESTAPI_LISTEN}
+        PATRONI_RESTAPI_CONNECT_ADDRESS: patroni-replica1:8008
+        PATRONI_RESTAPI_USERNAME: ${PATRONI_RESTAPI_USERNAME}
+        PATRONI_RESTAPI_PASSWORD_FILE: /run/secrets/patroni_password
+        PATRONI_ETCD3_HOSTS: ${PATRONI_ETCD3_HOSTS}
+        PATRONI_ETCD3_PROTOCOL: ${PATRONI_ETCD3_PROTOCOL}
+        PATRONI_ETCD3_USE_PROXIES: ${PATRONI_ETCD3_USE_PROXIES}
+        PATRONI_POSTGRESQL_LISTEN: ${PATRONI_POSTGRESQL_LISTEN}
+        PATRONI_POSTGRESQL_CONNECT_ADDRESS: patroni-replica1:5432
+        PATRONI_POSTGRESQL_DATA_DIR: ${PATRONI_POSTGRESQL_DATA_DIR}
+        PATRONI_POSTGRESQL_USERNAME: ${PATRONI_POSTGRESQL_USERNAME}
+        POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+        PATRONI_POSTGRESQL_REPLICATION_USERNAME: ${PATRONI_POSTGRESQL_REPLICATION_USERNAME}
+        PATRONI_POSTGRESQL_REPLICATION_PASSWORD_FILE: /run/secrets/repl_password
+        PATRONI_LOG_TYPE: ${PATRONI_LOG_TYPE}
+        PATRONI_LOG_FORMAT: ${PATRONI_LOG_FORMAT}
+        PATRONI_LOG_STATIC_FIELDS: ${PATRONI_LOG_STATIC_FIELDS}
+        PATRONI_LOG_LEVEL: ${PATRONI_LOG_LEVEL}
+        PATRONI_LOG_FILE_NUM: ${PATRONI_LOG_FILE_NUM}
+        PATRONI_LOG_FILE_SIZE: ${PATRONI_LOG_FILE_SIZE}
+        PATRONI_LOG_DATEFORMAT: ${PATRONI_LOG_DATEFORMAT}
+        PATRONI_LOG_HANDLERS: ${PATRONI_LOG_HANDLERS}
+    container_name: patroni-replica1
+    hostname: patroni-replica1
+    labels:
+      - "project=pg-cluster"
+      - "environment=production"
+    env_file:
+      - .env.patroni
+    environment:
+      PATRONI_NAME: ${PATRONI_NAME:-patroni-replica1}
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: patroni-replica1:5432
+      PATRONI_RESTAPI_CONNECT_ADDRESS: patroni-replica1:8008
+    volumes:
+      - replica1-data:${PGDATA}
+#    secrets:
+#      - postgres_password
+#      - repl_password
+#      - milvus_password
+#      - patroni_password
+#      - postgres_client_cert
+#      - postgres_client_key
+#      - postgres_ca_cert
+#      - patroni_api_cert
+#      - patroni_api_key
+#      - patroni_ca_cert
+    expose:
+      - 5432
+      - 8008
+    networks:
+      - patroni-network
+      - etcd-proxy-network
+    depends_on:
+      etcd-proxy:
+        condition: service_healthy
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-u", "${PATRONI_RESTAPI_USERNAME}:$(cat /run/secrets/patroni_password)", "http://localhost:8008/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  patroni-replica2:
+    build:
+      context: .
+      dockerfile: patroni.Dockerfile
+      args:
+        PATRONI_NAME: ${PATRONI_NAME:-patroni-replica2}
+        PATRONI_SCOPE: ${PATRONI_SCOPE}
+        PATRONI_NAMESPACE: ${PATRONI_NAMESPACE}
+        PATRONI_RESTAPI_LISTEN: ${PATRONI_RESTAPI_LISTEN}
+        PATRONI_RESTAPI_CONNECT_ADDRESS: patroni-replica2:8008
+        PATRONI_RESTAPI_USERNAME: ${PATRONI_RESTAPI_USERNAME}
+        PATRONI_RESTAPI_PASSWORD_FILE: /run/secrets/patroni_password
+        PATRONI_ETCD3_HOSTS: ${PATRONI_ETCD3_HOSTS}
+        PATRONI_ETCD3_PROTOCOL: ${PATRONI_ETCD3_PROTOCOL}
+        PATRONI_ETCD3_USE_PROXIES: ${PATRONI_ETCD3_USE_PROXIES}
+        PATRONI_POSTGRESQL_LISTEN: ${PATRONI_POSTGRESQL_LISTEN}
+        PATRONI_POSTGRESQL_CONNECT_ADDRESS: patroni-replica2:5432
+        PATRONI_POSTGRESQL_DATA_DIR: ${PATRONI_POSTGRESQL_DATA_DIR}
+        PATRONI_POSTGRESQL_USERNAME: ${PATRONI_POSTGRESQL_USERNAME}
+        POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+        PATRONI_POSTGRESQL_REPLICATION_USERNAME: ${PATRONI_POSTGRESQL_REPLICATION_USERNAME}
+        PATRONI_POSTGRESQL_REPLICATION_PASSWORD_FILE: /run/secrets/repl_password
+        PATRONI_LOG_TYPE: ${PATRONI_LOG_TYPE}
+        PATRONI_LOG_FORMAT: ${PATRONI_LOG_FORMAT}
+        PATRONI_LOG_STATIC_FIELDS: ${PATRONI_LOG_STATIC_FIELDS}
+        PATRONI_LOG_LEVEL: ${PATRONI_LOG_LEVEL}
+        PATRONI_LOG_FILE_NUM: ${PATRONI_LOG_FILE_NUM}
+        PATRONI_LOG_FILE_SIZE: ${PATRONI_LOG_FILE_SIZE}
+        PATRONI_LOG_DATEFORMAT: ${PATRONI_LOG_DATEFORMAT}
+        PATRONI_LOG_HANDLERS: ${PATRONI_LOG_HANDLERS}
+    container_name: patroni-replica2
+    hostname: patroni-replica2
+    labels:
+      - "project=pg-cluster"
+      - "environment=production"
+    env_file:
+      - .env.patroni
+    environment:
+      PATRONI_NAME: ${PATRONI_NAME:-patroni-replica2}
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: patroni-replica2:5432
+      PATRONI_RESTAPI_CONNECT_ADDRESS: patroni-replica2:8008
+    volumes:
+      - replica2-data:${PGDATA}
+#    secrets:
+#      - postgres_password
+#      - repl_password
+#      - milvus_password
+#      - patroni_password
+#      - postgres_client_cert
+#      - postgres_client_key
+#      - postgres_ca_cert
+#      - patroni_api_cert
+#      - patroni_api_key
+#      - patroni_ca_cert
+    expose:
+      - 5432
+      - 8008
+    networks:
+      - patroni-network
+      - etcd-proxy-network
+    depends_on:
+      etcd-proxy:
+        condition: service_healthy
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-u", "${PATRONI_RESTAPI_USERNAME}:$(cat /run/secrets/patroni_password)", "http://localhost:8008/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  patroni-replica3:
+    build:
+      context: .
+      dockerfile: patroni.Dockerfile
+      args:
+        PATRONI_NAME: ${PATRONI_NAME:-patroni-replica3}
+        PATRONI_SCOPE: ${PATRONI_SCOPE}
+        PATRONI_NAMESPACE: ${PATRONI_NAMESPACE}
+        PATRONI_RESTAPI_LISTEN: ${PATRONI_RESTAPI_LISTEN}
+        PATRONI_RESTAPI_CONNECT_ADDRESS: patroni-replica3:8008
+        PATRONI_RESTAPI_USERNAME: ${PATRONI_RESTAPI_USERNAME}
+        PATRONI_RESTAPI_PASSWORD_FILE: /run/secrets/patroni_password
+        PATRONI_ETCD3_HOSTS: ${PATRONI_ETCD3_HOSTS}
+        PATRONI_ETCD3_PROTOCOL: ${PATRONI_ETCD3_PROTOCOL}
+        PATRONI_ETCD3_USE_PROXIES: ${PATRONI_ETCD3_USE_PROXIES}
+        PATRONI_POSTGRESQL_LISTEN: ${PATRONI_POSTGRESQL_LISTEN}
+        PATRONI_POSTGRESQL_CONNECT_ADDRESS: patroni-replica3:5432
+        PATRONI_POSTGRESQL_DATA_DIR: ${PATRONI_POSTGRESQL_DATA_DIR}
+        PATRONI_POSTGRESQL_USERNAME: ${PATRONI_POSTGRESQL_USERNAME}
+        POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+        PATRONI_POSTGRESQL_REPLICATION_USERNAME: ${PATRONI_POSTGRESQL_REPLICATION_USERNAME}
+        PATRONI_POSTGRESQL_REPLICATION_PASSWORD_FILE: /run/secrets/repl_password
+        PATRONI_LOG_TYPE: ${PATRONI_LOG_TYPE}
+        PATRONI_LOG_FORMAT: ${PATRONI_LOG_FORMAT}
+        PATRONI_LOG_STATIC_FIELDS: ${PATRONI_LOG_STATIC_FIELDS}
+        PATRONI_LOG_LEVEL: ${PATRONI_LOG_LEVEL}
+        PATRONI_LOG_FILE_NUM: ${PATRONI_LOG_FILE_NUM}
+        PATRONI_LOG_FILE_SIZE: ${PATRONI_LOG_FILE_SIZE}
+        PATRONI_LOG_DATEFORMAT: ${PATRONI_LOG_DATEFORMAT}
+        PATRONI_LOG_HANDLERS: ${PATRONI_LOG_HANDLERS}
+    container_name: patroni-replica3
+    hostname: patroni-replica3
+    labels:
+      - "project=pg-cluster"
+      - "environment=production"
+    env_file:
+      - .env.patroni
+    environment:
+      PATRONI_NAME: ${PATRONI_NAME:-patroni-replica3}
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: patroni-replica3:5432
+      PATRONI_RESTAPI_CONNECT_ADDRESS: patroni-replica3:8008
+    volumes:
+      - replica3-data:${PGDATA}
+#    secrets:
+#      - postgres_password
+#      - repl_password
+#      - milvus_password
+#      - patroni_password
+#      - postgres_client_cert
+#      - postgres_client_key
+#      - postgres_ca_cert
+#      - patroni_api_cert
+#      - patroni_api_key
+#      - patroni_ca_cert
+    expose:
+      - 5432
+      - 8008
+    networks:
+      - patroni-network
+      - etcd-proxy-network
+    depends_on:
+      etcd-proxy:
+        condition: service_healthy
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-u", "${PATRONI_RESTAPI_USERNAME}:$(cat /run/secrets/patroni_password)", "http://localhost:8008/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  patroni-haproxy:
+    build:
+      context: .
+      dockerfile: haproxy.Dockerfile
+      args:
+        HAPROXY_STATS_USER: ${HAPROXY_STATS_USER}
+        HAPROXY_STATS_PASSWORD_FILE: /run/secrets/haproxy_stats_password
+    container_name: patroni-haproxy
+    hostname: patroni-haproxy
+    labels:
+      - "project=pg-cluster"
+      - "environment=production"
+    ports:
+      - "5432:5432"
+      - "5433:5433"
+      - "8008:8008"
+      - "8080:8080"
+#    secrets:
+#      - patroni_password
+#      - haproxy_stats_password
+    networks:
+      - patroni-network
+      - postgres-proxy-network
+    depends_on:
+      patroni-replica0:
+        condition: service_healthy
+      patroni-replica1:
+        condition: service_healthy
+      patroni-replica2:
+        condition: service_healthy
+      patroni-replica3:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "haproxy", "-v"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+# Notes:
+# - Secrets are defined for all passwords and SSL certificates, stored in .secrets/ directory.
+# - Each Patroni replica mounts the necessary secrets for authentication.
+# - The .pgpass file is generated in patroni.Dockerfile for PostgreSQL authentication.
+# - Internal networks isolate services for security.
+# - In production, replace placeholder SSL certificates with valid ones.
+# - Use a secret management system (e.g., Vault) for advanced secret rotation.
+# - Monitor cluster health with patronictl and HAProxy stats dashboard.
+

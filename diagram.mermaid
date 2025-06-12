@@ -1,0 +1,249 @@
+%%{
+  init: {
+    'theme': 'dark',
+    'themeVariables': {
+      'primaryColor': '#00ff00',
+      'edgeLabelBackground': '#333',
+      'lineColor': '#ff00ff',
+      'tertiaryColor': '#00ffff',
+      'fontSize': '16px'
+    }
+  }
+}%%
+graph TB
+    %% Service Layers
+    subgraph External_Entry["External Entry"]
+        direction TB
+        HAProxy["HAProxy<br>Entry Point<br>Ports: 2379, 9000, 9001, 19530, 9090, 3000, 3300, 6650, 8080"]
+        style HAProxy fill:#1505a8,stroke:#ff00ff,stroke-width:2px,color:#fff
+    end
+
+    subgraph Milvus_Components["Milvus Components"]
+        direction TB
+        MilvusEntrypoint["milvus-entrypoint<br>HAProxy"]
+        MilvusProxy["milvus-proxy"]
+        MilvusGUI["milvus-gui<br>Client Interface"]
+        RootCoord["rootcoord<br>Metadata Manager"]
+        QueryCoord["querycoord<br>Query Coordinator"]
+        QueryNode1["querynode-1"]
+        QueryNode2["querynode-2"]
+        QueryNode3["querynode-3"]
+        IndexCoord["indexcoord<br>Index Coordinator"]
+        IndexNode1["indexnode-1"]
+        IndexNode2["indexnode-2"]
+        IndexNode3["indexnode-3"]
+        DataCoord["datacoord<br>Data Coordinator"]
+        DataNode1["datanode-1"]
+        DataNode2["datanode-2"]
+        DataNode3["datanode-3"]
+        style MilvusEntrypoint fill:#1505a8,stroke:#ff00ff,stroke-width:2px,color:#fff
+        style MilvusProxy fill:#00ffff,stroke:#ff00ff,stroke-width:2px,color:#000
+        style MilvusGUI fill:#71f74f,stroke:#ff00ff,stroke-width:2px,color:#000
+        style RootCoord fill:#00ffff,stroke:#ff00ff,stroke-width:2px,color:#000
+        style QueryCoord fill:#00ffff,stroke:#ff00ff,stroke-width:2px,color:#000
+        style IndexCoord fill:#00ffff,stroke:#ff00ff,stroke-width:2px,color:#000
+        style DataCoord fill:#00ffff,stroke:#ff00ff,stroke-width:2px,color:#000
+    end
+
+    subgraph Etcd_Cluster["Etcd Cluster"]
+        direction TB
+        EtcdProxy["etcd-proxy<br>HAProxy"]
+        Etcd0["etcd0"]
+        Etcd1["etcd1"]
+        Etcd2["etcd2"]
+        style EtcdProxy fill:#1505a8,stroke:#ff00ff,stroke-width:2px,color:#fff
+        style Etcd0 fill:#000000,stroke:#00ffff,stroke-width:2px,color:#fff
+        style Etcd1 fill:#000000,stroke:#00ffff,stroke-width:2px,color:#fff
+        style Etcd2 fill:#000000,stroke:#00ffff,stroke-width:2px,color:#fff
+    end
+
+    subgraph Minio_Cluster["MinIO Cluster"]
+        direction TB
+        MinioProxy["minio-proxy<br>HAProxy"]
+        Minio0["minio0"]
+        Minio1["minio1"]
+        Minio2["minio2"]
+        style MinioProxy fill:#1505a8,stroke:#ff00ff,stroke-width:2px,color:#fff
+        style Minio0 fill:#000000,stroke:#00ffff,stroke-width:2px,color:#fff
+        style Minio1 fill:#000000,stroke:#00ffff,stroke-width:2px,color:#fff
+        style Minio2 fill:#000000,stroke:#00ffff,stroke-width:2px,color:#fff
+    end
+
+    subgraph Pulsar_Cluster["Pulsar Cluster"]
+        direction TB
+        PulsarProxy["pulsar-proxy<br>HAProxy"]
+        Proxy1["proxy1"]
+        Proxy2["proxy2"]
+        Proxy3["proxy3"]
+        Broker1["broker1"]
+        Broker2["broker2"]
+        Broker3["broker3"]
+        Bookie1["bookie1"]
+        Bookie2["bookie2"]
+        Bookie3["bookie3"]
+        Zookeeper1["zookeeper1"]
+        Zookeeper2["zookeeper2"]
+        Zookeeper3["zookeeper3"]
+        PulsarInit["pulsar-init<br>Cluster Initializer"]
+        style PulsarProxy fill:#1505a8,stroke:#ff00ff,stroke-width:2px,color:#fff
+        style Proxy1 fill:#00ffff,stroke:#ff00ff,stroke-width:2px,color:#000
+        style Proxy2 fill:#00ffff,stroke:#ff00ff,stroke-width:2px,color:#000
+        style Proxy3 fill:#00ffff,stroke:#ff00ff,stroke-width:2px,color:#000
+    end
+
+    subgraph Monitoring["Monitoring"]
+        direction TB
+        Prometheus["prometheus"]
+        Grafana["grafana"]
+        NodeExporter["node_exporter"]
+        style Prometheus fill:#00ffff,stroke:#ff00ff,stroke-width:2px,color:#000
+        style Grafana fill:#00ffff,stroke:#ff00ff,stroke-width:2px,color:#000
+        style NodeExporter fill:#00ffff,stroke:#ff00ff,stroke-width:2px,color:#000
+    end
+
+    %% Volume Mounts Layer
+    subgraph Volumes["Persistent Volumes"]
+        direction TB
+        HaproxyData["haproxy_data"]
+        Etcd0Data["etcd0_data"]
+        Etcd1Data["etcd1_data"]
+        Etcd2Data["etcd2_data"]
+        MinioData0["minio_data0"]
+        MinioData1["minio_data1"]
+        MinioData2["minio_data2"]
+        ZookeeperData1["zookeeper_data1"]
+        ZookeeperData2["zookeeper_data2"]
+        ZookeeperData3["zookeeper_data3"]
+        BookkeeperData1["bookkeeper_data1"]
+        BookkeeperData2["bookkeeper_data2"]
+        BookkeeperData3["bookkeeper_data3"]
+        PrometheusData["prometheus_data"]
+        GrafanaData["grafana_data"]
+        style HaproxyData fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style Etcd0Data fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style Etcd1Data fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style Etcd2Data fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style MinioData0 fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style MinioData1 fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style MinioData2 fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style ZookeeperData1 fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style ZookeeperData2 fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style ZookeeperData3 fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style BookkeeperData1 fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style BookkeeperData2 fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style BookkeeperData3 fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style PrometheusData fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+        style GrafanaData fill:#ffffff,stroke:#00ff00,stroke-width:2px,color:#000
+    end
+
+    %% Dependency Relationships
+    %% External Entry
+    HAProxy --> MilvusEntrypoint
+    HAProxy --> MilvusGUI
+    HAProxy --> EtcdProxy
+    HAProxy --> MinioProxy
+    HAProxy --> PulsarProxy
+    HAProxy --> Prometheus
+    HAProxy --> Grafana
+
+    %% Milvus Dependencies
+    MilvusGUI --> MilvusEntrypoint
+    MilvusEntrypoint --> MilvusProxy
+    MilvusProxy --> RootCoord
+    MilvusProxy --> QueryCoord
+    MilvusProxy --> IndexCoord
+    MilvusProxy --> DataCoord
+    RootCoord --> EtcdProxy
+    RootCoord --> MinioProxy
+    RootCoord --> PulsarProxy
+    QueryCoord --> RootCoord
+    QueryCoord --> EtcdProxy
+    QueryCoord --> MinioProxy
+    QueryCoord --> PulsarProxy
+    QueryNode1 --> QueryCoord
+    QueryNode2 --> QueryCoord
+    QueryNode3 --> QueryCoord
+    IndexCoord --> RootCoord
+    IndexCoord --> EtcdProxy
+    IndexCoord --> MinioProxy
+    IndexCoord --> PulsarProxy
+    IndexNode1 --> IndexCoord
+    IndexNode2 --> IndexCoord
+    IndexNode3 --> IndexCoord
+    DataCoord --> RootCoord
+    DataCoord --> EtcdProxy
+    DataCoord --> MinioProxy
+    DataCoord --> PulsarProxy
+    DataNode1 --> DataCoord
+    DataNode2 --> DataCoord
+    DataNode3 --> DataCoord
+
+    %% Etcd Dependencies
+    EtcdProxy --> Etcd0
+    EtcdProxy --> Etcd1
+    EtcdProxy --> Etcd2
+    Etcd0 --> Etcd1
+    Etcd0 --> Etcd2
+    Etcd1 --> Etcd0
+    Etcd1 --> Etcd2
+    Etcd2 --> Etcd0
+    Etcd2 --> Etcd1
+
+    %% MinIO Dependencies
+    MinioProxy --> Minio0
+    MinioProxy --> Minio1
+    MinioProxy --> Minio2
+
+    %% Pulsar Dependencies
+    PulsarProxy --> Proxy1
+    PulsarProxy --> Proxy2
+    PulsarProxy --> Proxy3
+    Proxy1 --> Broker1
+    Proxy2 --> Broker2
+    Proxy3 --> Broker3
+    Broker1 --> Bookie1
+    Broker2 --> Bookie2
+    Broker3 --> Bookie3
+    Bookie1 --> Zookeeper1
+    Bookie2 --> Zookeeper2
+    Bookie3 --> Zookeeper3
+    Zookeeper1 --> Zookeeper2
+    Zookeeper2 --> Zookeeper3
+    Zookeeper3 --> Zookeeper1
+    PulsarInit --> Zookeeper1
+    PulsarInit --> Zookeeper2
+    PulsarInit --> Zookeeper3
+
+    %% Monitoring Dependencies
+    Grafana --> Prometheus
+    Prometheus --> NodeExporter
+    Prometheus --> HAProxy
+    Prometheus --> EtcdProxy
+    Prometheus --> MinioProxy
+    Prometheus --> PulsarProxy
+    Prometheus --> MilvusProxy
+
+    %% Volume Dependencies
+    HAProxy --> HaproxyData
+    Etcd0 --> Etcd0Data
+    Etcd1 --> Etcd1Data
+    Etcd2 --> Etcd2Data
+    Minio0 --> MinioData0
+    Minio1 --> MinioData1
+    Minio2 --> MinioData2
+    Zookeeper1 --> ZookeeperData1
+    Zookeeper2 --> ZookeeperData2
+    Zookeeper3 --> ZookeeperData3
+    Bookie1 --> BookkeeperData1
+    Bookie2 --> BookkeeperData2
+    Bookie3 --> BookkeeperData3
+    Prometheus --> PrometheusData
+    Grafana --> GrafanaData
+
+    %% Notes
+    classDef note fill:#333,stroke:#00ff00,stroke-width:2px,color:#fff
+    Note1["Note: HAProxy routes client traffic to Milvus, Etcd, MinIO, Pulsar, and monitoring services."] --> HAProxy:::note
+    Note2["Note: Milvus proxy depends on coordinators (rootcoord, querycoord, etc.) for query routing and metadata management."] --> MilvusProxy:::note
+    Note3["Note: Milvus coordinators depend on Etcd (metadata), MinIO (storage), and Pulsar (messaging)."] --> RootCoord:::note
+    Note4["Note: Persistent volumes ensure data durability for Etcd, MinIO, Pulsar, Prometheus, and Grafana."] --> Volumes:::note
+    Note5["Note: Prometheus scrapes metrics from all services, enabling Grafana visualizations."] --> Prometheus:::note

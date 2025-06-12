@@ -1,0 +1,126 @@
+%% Patroni PostgreSQL Cluster Diagram
+%% This diagram illustrates the architecture of a Patroni-managed PostgreSQL high-availability cluster
+%% as defined in patroni.yml. It includes HAProxy for load balancing, four Patroni nodes (one primary,
+%% three replicas), an Etcd proxy, and a three-node Etcd cluster for consensus. Network boundaries
+%% and persistent storage are also depicted.
+
+graph TD
+    %% Client Application
+    subgraph ClientApp[Client Application]
+        App[Client Application] -->|Write Queries: 5432|HP[patroni-haproxy<br>HAProxy]
+        App -->|Read Queries: 5433|HP
+        App -->|Stats Dashboard: 8080|HP
+    end
+
+    %% Postgres Proxy Network (External Access)
+    subgraph PostgresProxyNetwork[postgres-proxy-network]
+        HP
+    end
+
+    %% Patroni Network (PostgreSQL and API Communication)
+    subgraph PatroniNetwork[patroni-network]
+        HP -->|Primary PG: 5432|PR1[patroni-replica1:5432<br>Primary]
+        HP -->|Replica PG: 5432|PR0[patroni-replica0:5432<br>Replica]
+        HP -->|Replica PG: 5432|PR2[patroni-replica2:5432<br>Replica]
+        HP -->|Replica PG: 5432|PR3[patroni-replica3:5432<br>Replica]
+        HP -->|Health Checks: 8008|PR0API[patroni-replica0:8008<br>Patroni API]
+        HP -->|Health Checks: 8008|PR1API[patroni-replica1:8008<br>Patroni API]
+        HP -->|Health Checks: 8008|PR2API[patroni-replica2:8008<br>Patroni API]
+        HP -->|Health Checks: 8008|PR3API[patroni-replica3:8008<br>Patroni API]
+
+        %% Streaming Replication and pg_rewind
+        PR1 -->|Streaming Replication|PR0
+        PR1 -->|Streaming Replication|PR2
+        PR1 -->|Streaming Replication|PR3
+        PR0 -->|pg_rewind|PR1
+        PR2 -->|pg_rewind|PR1
+        PR3 -->|pg_rewind|PR1
+    end
+
+    %% Etcd Proxy Network (Patroni to Etcd Communication)
+    subgraph EtcdProxyNetwork[etcd-proxy-network]
+        PR0 -->|Consensus: 2379|EP[etcd-proxy:2379]
+        PR1 -->|Consensus: 2379|EP
+        PR2 -->|Consensus: 2379|EP
+        PR3 -->|Consensus: 2379|EP
+    end
+
+    %% Etcd Network (Etcd Cluster Communication)
+    subgraph EtcdNetwork[etcd-network]
+        EP -->|Client Requests: 2379|E0[etcd0:2379]
+        EP -->|Client Requests: 2379|E1[etcd1:2379]
+        EP -->|Client Requests: 2379|E2[etcd2:2379]
+        E0 -->|Peer Sync: 2380|E1
+        E0 -->|Peer Sync: 2380|E2
+        E1 -->|Peer Sync: 2380|E0
+        E1 -->|Peer Sync: 2380|E2
+        E2 -->|Peer Sync: 2380|E0
+        E2 -->|Peer Sync: 2380|E1
+    end
+
+    %% Persistent Storage
+    subgraph PersistentStorage[Persistent Storage]
+        PR0 -->|Data|RD0[replica0-data]
+        PR1 -->|Data|RD1[replica1-data]
+        PR2 -->|Data|RD2[replica2-data]
+        PR3 -->|Data|RD3[replica3-data]
+        E0 -->|Data|ED0[etcd0-data]
+        E1 -->|Data|ED1[etcd1-data]
+        E2 -->|Data|ED2[etcd2-data]
+    end
+
+    %% Styling for Visual Appeal
+    style HP fill:#4A90E2,stroke:#2F5DAA,stroke-width:3px,color:#FFF
+    style PR1 fill:#9B59B6,stroke:#6F2E8A,stroke-width:3px,color:#FFF
+    style PR0 fill:#AED6F1,stroke:#2F5DAA,stroke-width:2px,color:#000
+    style PR2 fill:#AED6F1,stroke:#2F5DAA,stroke-width:2px,color:#000
+    style PR3 fill:#AED6F1,stroke:#2F5DAA,stroke-width:2px,color:#000
+    style PR0API fill:#D5F5E3,stroke:#2E8B57,stroke-width:1px,color:#000
+    style PR1API fill:#D5F5E3,stroke:#2E8B57,stroke-width:1px,color:#000
+    style PR2API fill:#D5F5E3,stroke:#2E8B57,stroke-width:1px,color:#000
+    style PR3API fill:#D5F5E3,stroke:#2E8B57,stroke-width:1px,color:#000
+    style EP fill:#F1C40F,stroke:#B58900,stroke-width:3px,color:#000
+    style E0 fill:#F9E79F,stroke:#B58900,stroke-width:1px,color:#000
+    style E1 fill:#F9E79F,stroke:#B58900,stroke-width:1px,color:#000
+    style E2 fill:#F9E79F,stroke:#B58900,stroke-width:1px,color:#000
+    style RD0 fill:#D3D3D3,stroke:#666,stroke-width:1px,color:#000
+    style RD1 fill:#D3D3D3,stroke:#666,stroke-width:1px,color:#000
+    style RD2 fill:#D3D3D3,stroke:#666,stroke-width:1px,color:#000
+    style RD3 fill:#D3D3D3,stroke:#666,stroke-width:1px,color:#000
+    style ED0 fill:#D3D3D3,stroke:#666,stroke-width:1px,color:#000
+    style ED1 fill:#D3D3D3,stroke:#666,stroke-width:1px,color Old:#D3D3D3,stroke:#666,stroke-width:1px,color:#000
+    style ED2 fill:#D3D3D3,stroke:#666,stroke-width:1px,color:#000
+
+    %% Link Styling for Clarity
+    %% Client to HAProxy
+    linkStyle 0,1 stroke:#000,stroke-width:2px
+    %% Stats dashboard
+    linkStyle 2 stroke:#000,stroke-width:1px
+    %% HAProxy to PG ports
+    linkStyle 3,4,5,6 stroke:#000,stroke-width:2px
+    %% Health checks
+    linkStyle 7,8,9,10 stroke:#FF4500,stroke-width:1px,stroke-dasharray:5
+     %% Streaming replication
+    linkStyle 11,12,13 stroke:#1E90FF,stroke-width:2px
+    %% pg_rewind
+    linkStyle 14,15,16 stroke:#1E90FF,stroke-width:1px,stroke-dasharray:5
+    %% Consensus to Etcd proxy
+    linkStyle 17,18,19,20 stroke:#228B22,stroke-width:2px
+    %% Etcd client requests
+    linkStyle 21,22,23 stroke:#228B22,stroke-width:1px,stroke-dasharray:5
+    %% Etcd peer sync
+    linkStyle 24,25,26,27,28,29 stroke:#228B22,stroke-width:1px,stroke-dasharray:3
+    %% Data volumes
+    linkStyle 30,31,32,33,34,35,36 stroke:#666,stroke-width:1px
+
+    %% Annotations for Detailed Documentation
+%%    note right of HP: HAProxy (`patroni-haproxy`) routes write queries to the primary PostgreSQL node (port 5432) and read queries to healthy replicas (port 5433). It performs health checks via Patroni REST API (port 8008, /leader for primary, /replica for read-only) to determine node roles and health. Stats dashboard available at port 8080.
+%%    note right of PR1: The PostgreSQL primary (`patroni-replica1`) handles write operations and replicates data to replicas via streaming replication. Patroni manages failover, promoting a healthy replica to primary if needed.
+%%    note right of PR0: PostgreSQL replicas (`patroni-replica0`, `patroni-replica2`, `patroni-replica3`) serve read-only queries and receive data from the primary via streaming replication. Patroni uses `pg_rewind` to resync demoted primaries or lagging replicas.
+%%    note right of EP: The Etcd proxy (`etcd-proxy:2379`) provides a stable endpoint for Patroni nodes to access the Etcd cluster, simplifying consensus communication.
+%%    note right of E0: Etcd nodes (`etcd0`, `etcd1`, `etcd2`) form a distributed consensus cluster, maintaining Patroni cluster state (leader election, member list). Three nodes ensure quorum and prevent split-brain scenarios.
+%%    note right of RD0: Persistent storage volumes (`replica0-data`, `replica1-data`, `replica2-data`, `replica3-data`, `etcd0-data`, `etcd1-data`, `etcd2-data`) store PostgreSQL and Etcd data for durability.
+%%    note right of PostgresProxyNetwork: The `postgres-proxy-network` exposes HAProxy to external clients for PostgreSQL and stats access.
+%%    note right of PatroniNetwork: The `patroni-network` enables communication between HAProxy and Patroni nodes for PostgreSQL (5432) and API (8008) traffic.
+%%    note right of EtcdProxyNetwork: The `etcd-proxy-network` connects Patroni nodes to the Etcd proxy for consensus.
+%%    note right of EtcdNetwork: The `etcd-network` isolates Etcd nodes for secure peer synchronization (port 2380).

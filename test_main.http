@@ -1,0 +1,349 @@
+# Test your Milvus cluster and components
+
+# Variables
+@host = 10.1.0.99
+@milvus_port = 19530
+@milvus_user = root
+@milvus_pass = a6382b679b3121c203226870c344a223d1d2d70587a5a4aa
+@milvus_token = "cm9vdDphNjM4MmI2NzliMzEyMWMyMDMyMjY4NzBjMzQ0YTIyM2QxZDJkNzA1ODdhNWE0YWE="
+@haproxy_port_etcd = 2379
+@haproxy_port_minio = 9000
+@haproxy_port_pulsar = 6650
+@haproxy_port_pulsar_admin = 8080
+@minio_console_port = 9001
+@prometheus_port = 9090
+@grafana_port = 3000
+@milvus_gui_port = 3300
+@grafana_user = admin
+@grafana_pass = WW91ckdyYWZhbmFTdHJvbmdQYXNzd29yZDEyMw
+
+# Milvus Tests
+
+# Test 1: Check Milvus Proxy Health
+GET http://{{host}}:9091/healthz
+
+
+
+###
+
+# Test 2: Login to Milvus
+GET http://{{host}}:{{milvus_port}}
+Authorization: Bearer {{milvus_token}}
+
+
+###
+
+# Test 3: Create a Collection
+POST http://{{host}}:{{milvus_port}}/v1/collections
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{milvus_user}}:{{milvus_pass}}
+
+{
+  "collection_name": "test_collection",
+  "schema": {
+    "fields": [
+      {
+        "name": "id",
+        "type": "Int64",
+        "is_primary_key": true,
+        "auto_id": false
+      },
+      {
+        "name": "embeddings",
+        "type": "FloatVector",
+        "params": {
+          "dim": 8
+        }
+      }
+    ]
+  }
+}
+
+###
+
+# Test 4: Insert Vectors into Collection
+POST http://{{host}}:{{milvus_port}}/v1/vectors/insert
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{milvus_user}}:{{milvus_pass}}
+
+{
+  "collection_name": "test_collection",
+  "data": [
+    {
+      "id": 1,
+      "embedding": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+    },
+    {
+      "id": 2,
+      "embedding": [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    }
+  ]
+}
+
+###
+
+# Test 5: Search Vectors
+POST http://{{host}}:{{milvus_port}}/v1/vectors/search
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{milvus_user}}:{{milvus_pass}}
+
+{
+  "collection_name": "test_collection",
+  "vectors": [[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]],
+  "search_params": {
+    "metric_type": "L2",
+    "params": {"nprobe": 10},
+    "topk": 5
+  },
+  "output_fields": ["id"]
+}
+
+###
+
+# Test 6: List Collections
+GET http://{{host}}:{{milvus_port}}/v1/collections
+Accept: application/json
+Authorization: Bearer {{milvus_user}}:{{milvus_pass}}
+
+###
+
+# Test 7: Drop Collection
+DELETE http://{{host}}:{{milvus_port}}/v1/collections/test_collection
+Accept: application/json
+Authorization: Bearer {{milvus_user}}:{{milvus_pass}}
+
+###
+
+# Test 8: Invalid Login (Test Failure Case)
+POST http://{{host}}:{{milvus_port}}/v1/login
+Content-Type: application/json
+Accept: application/json
+
+{
+  "username": "invalid_user",
+  "password": "wrong_password"
+}
+
+###
+
+# Test 9: Create Index
+POST http://{{host}}:{{milvus_port}}/v1/indexes
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{milvus_user}}:{{milvus_pass}}
+
+{
+  "collection_name": "test_collection",
+  "field_name": "embedding",
+  "index_params": {
+    "index_type": "IVF_FLAT",
+    "metric_type": "L2",
+    "params": {"nlist": 1024}
+  }
+}
+
+###
+
+# Test 10: Load Collection
+POST http://{{host}}:{{milvus_port}}/v1/collections/test_collection/load
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{milvus_user}}:{{milvus_pass}}
+
+{}
+
+###
+
+# etcd Tests
+# Test 11: Check etcd Health via HAProxy
+GET http://{{host}}:{{haproxy_port_etcd}}/health
+Accept: application/json
+
+###
+
+# Test 12: Get etcd Version
+GET http://{{host}}:{{haproxy_port_etcd}}/version
+Accept: application/json
+
+###
+
+# Test 13: Check etcd Metrics
+GET http://{{host}}:{{haproxy_port_etcd}}/metrics
+Accept: text/plain
+
+###
+
+# MinIO Tests
+# Test 14: Check MinIO Health
+GET http://{{host}}:{{haproxy_port_minio}}/minio/health/live
+Accept: application/json
+
+###
+
+# Test 15: Check MinIO Cluster Health
+GET http://{{host}}:{{haproxy_port_minio}}/minio/health/cluster
+Accept: application/json
+
+###
+
+# Test 16: Access MinIO Console (Redirect Check)
+GET http://{{host}}:{{minio_console_port}}
+Accept: text/html
+
+###
+
+# Pulsar Tests
+# Test 17: Check Pulsar Admin Health
+GET http://{{host}}:{{haproxy_port_pulsar_admin}}/status.html
+Accept: text/html
+
+###
+
+# Test 18: List Pulsar Clusters
+GET http://{{host}}:{{haproxy_port_pulsar_admin}}/admin/v2/clusters
+Accept: application/json
+
+###
+
+# Test 19: Get Pulsar Broker Stats
+GET http://{{host}}:{{haproxy_port_pulsar_admin}}/admin/v2/brokers
+Accept: application/json
+
+###
+
+# Test 20: Check Pulsar Proxy Metrics
+GET http://{{host}}:{{haproxy_port_pulsar_admin}}/metrics
+Accept: text/plain
+
+###
+
+# HAProxy Tests
+# Test 21: Check HAProxy Health
+GET http://{{host}}:8404
+Accept: text/html
+
+###
+
+# Test 22: Get HAProxy Stats
+GET http://{{host}}:8404/stats
+Accept: text/html
+
+###
+
+# Test 23: Verify HAProxy Version
+GET http://{{host}}:8404/?version
+Accept: text/plain
+
+###
+
+# Prometheus Tests
+# Test 24: Check Prometheus Health
+GET http://{{host}}:{{prometheus_port}}/status
+Accept: text/html
+
+###
+
+# Test 25: Query Milvus Metrics
+GET http://{{host}}:{{prometheus_port}}/api/v1/query?query=milvus_proxy_request_total
+Accept: application/json
+
+###
+
+# Test 26: Query etcd Metrics
+GET http://{{host}}:{{prometheus_port}}/api/v1/query?query=etcd_server_has_leader
+Accept: application/json
+
+###
+
+# Test 27: Query MinIO Metrics
+GET http://{{host}}:{{prometheus_port}}/api/v1/query?query=minio_node_disk_total_bytes
+Accept: application/json
+
+###
+
+# Grafana Tests
+# Test 28: Login to Grafana
+POST http://{{host}}:{{grafana_port}}/login
+Content-Type: application/json
+Accept: application/json
+
+{
+  "user": "{{grafana_user}}",
+  "password": "{{grafana_pass}}"
+}
+
+###
+
+# Test 29: Check Grafana Health
+GET http://{{host}}:{{grafana_port}}/api/health
+Accept: application/json
+
+###
+
+# Test 30: List Grafana Dashboards
+GET http://{{host}}:{{grafana_port}}/api/search
+Accept: application/json
+Authorization: Basic {{grafana_user}}:{{grafana_pass}}
+
+###
+
+# Milvus GUI Tests
+# Test 31: Access Milvus GUI
+GET http://{{host}}:{{milvus_gui_port}}
+Accept: text/html
+
+###
+
+# Test 32: Check Milvus GUI Health
+GET http://{{host}}:{{milvus_gui_port}}/api/v1/health
+Accept: application/json
+
+###
+
+# Additional Milvus Tests
+# Test 33: Get Collection Statistics
+POST http://{{host}}:{{milvus_port}}/v1/collections/test_collection/statistics
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{milvus_user}}:{{milvus_pass}}
+
+{}
+
+###
+
+# Test 34: Create Partition
+POST http://{{host}}:{{milvus_port}}/v1/partitions
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{milvus_user}}:{{milvus_pass}}
+
+{
+  "collection_name": "test_collection",
+  "partition_name": "test_partition"
+}
+
+###
+
+# Test 35: Query by ID
+POST http://{{host}}:{{milvus_port}}/v1/vectors/query
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{milvus_user}}:{{milvus_pass}}
+
+{
+  "collection_name": "test_collection",
+  "filter": "id in [1, 2]",
+  "output_fields": ["id", "embedding"]
+}
+
+###
+
+# Test 36: Invalid Collection Access (Test Failure Case)
+GET http://{{host}}:{{milvus_port}}/v1/collections/non_existent_collection
+Accept: application/json
+Authorization: Bearer {{milvus_user}}:{{milvus_pass}}
+
+###

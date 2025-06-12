@@ -1,0 +1,95 @@
+####################################################################
+# Define networks for service communication
+networks:
+  milvus-network:
+    name: milvus-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  minio-network:
+    name: minio-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  etcd-network:
+    name: etcd-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  prometheus-network:
+    name: prometheus-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  pulsar-network:
+    name: pulsar-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  external-network:
+    name: external-network
+    driver: bridge
+    ipam:
+      driver: default
+
+####################################################################
+# Define persistent volumes for data durability
+volumes:
+  haproxy_data:
+    name: haproxy_data
+#####################################################################
+services:
+  ####################################################################
+  # HAProxy service for load balancing
+  haproxy:
+    build:
+      context: .
+      dockerfile: haproxy.Dockerfile
+    container_name: haproxy
+    hostname: haproxy
+    command: ["haproxy", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
+#    image: haproxy:latest
+    ports:
+      - "2379:2379"
+      - "9001:9001"
+      - "8404:8404"   # HAProxy metrics
+      - "19530:19530"
+      - "9091:9091"
+      - "3000:3000"
+      - "3300:3300"
+      - "38404:38404" # Pulsar metrics
+      - "38404:38404"
+      - "28404:28404"
+      - "18404:18404"
+    depends_on:
+      minio-proxy:
+        condition: service_healthy
+      etcd-proxy:
+        condition: service_healthy
+      pulsar-proxy:
+        condition: service_healthy
+      milvus-entrypoint:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "haproxy -v" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - milvus-network
+      - etcd-network
+      - minio-network
+      - prometheus-network
+      - pulsar-network
+      - external-network

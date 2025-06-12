@@ -1,0 +1,325 @@
+####################################################################
+# Define networks for service communication
+networks:
+  milvus-network:
+    name: milvus-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  etcd-network:
+    name: etcd-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  minio-network:
+    name: minio-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  pulsar-network:
+    name: pulsar-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  prometheus-network:
+    name: prometheus-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  external-network:
+    name: external-network
+    driver: bridge
+    ipam:
+      driver: default
+
+####################################################################
+# Define persistent volumes for data durability
+volumes:
+  # Etcd data volumes
+  etcd0_data:
+    name: etcd_data
+  etcd1_data:
+    name: etcd1_data
+  etcd2_data:
+    name: etcd2_data
+  # MinIO data volumes
+  minio_data0:
+    name: minio_data0
+  minio_data1:
+    name: minio_data1
+  minio_data2:
+    name: minio_data2
+  # HAProxy data volume
+  haproxy_data:
+    name: haproxy_data
+  # Pulsar data volume
+  zookeeper_data1:
+    name: zookeeper_data1
+  zookeeper_data2:
+    name: zookeeper_data2
+  zookeeper_data3:
+    name: zookeeper_data3
+  bookkeeper_data1:
+    name: bookkeeper_data1
+  bookkeeper_data2:
+    name: bookkeeper_data2
+  bookkeeper_data3:
+    name: bookkeeper_data3
+  # Prometheus and Grafana data volumes
+  prometheus_data:
+    name: prometheus_data
+  grafana_data:
+    name: grafana_data
+
+#####################################################################
+services:
+  ####################################################################
+  # Etcd service for metadata storage
+  # etcd replica 1
+  etcd0:
+    extends:
+      file: .devcontainer/services/etcd/etcd.yaml
+      service: etcd0
+
+  # etcd replica 2
+  etcd1:
+    extends:
+      file: .devcontainer/services/etcd/etcd.yaml
+      service: etcd1
+
+  # etcd replica 3
+  etcd2:
+    extends:
+      file: .devcontainer/services/etcd/etcd.yaml
+      service: etcd2
+
+
+  # etcd proxy
+  etcd-proxy:
+    extends:
+      file: .devcontainer/services/etcd/etcd.yaml
+      service: etcd-proxy
+
+  ####################################################################
+  # MinIO service for object storage or S3 compatible storage
+  minio0:
+    extends:
+      file: .devcontainer/services/minio/minio.yaml
+      service: minio0
+
+  minio1:
+    extends:
+      file: .devcontainer/services/minio/minio.yaml
+      service: minio1
+
+  minio2:
+    extends:
+      file: .devcontainer/services/minio/minio.yaml
+      service: minio2
+
+  # MinIO proxy
+  minio-proxy:
+      extends:
+        file: .devcontainer/services/minio/minio.yaml
+        service: minio-proxy
+
+  ####################################################################
+  # Pulsar cluster services
+  ####################################################################
+  # ZooKeeper Ensemble (3 nodes)
+  zookeeper1:
+    extends:
+      file: .devcontainer/services/pulsar/pulsar.yaml
+      service: zookeeper1
+
+  zookeeper2:
+    extends:
+      file: .devcontainer/services/pulsar/pulsar.yaml
+      service: zookeeper2
+
+  zookeeper3:
+    extends:
+      file: .devcontainer/services/pulsar/pulsar.yaml
+      service: zookeeper3
+
+
+  # Initialize Cluster Metadata
+  pulsar-init:
+    extends:
+      file: .devcontainer/services/pulsar/pulsar.yaml
+      service: pulsar-init
+
+  # Bookies (3 nodes)
+  bookie1:
+    extends:
+      file: .devcontainer/services/pulsar/pulsar.yaml
+      service: bookie1
+
+
+  bookie2:
+    extends:
+      file: .devcontainer/services/pulsar/pulsar.yaml
+      service: bookie2
+
+  bookie3:
+    extends:
+      file: .devcontainer/services/pulsar/pulsar.yaml
+      service: bookie3
+
+  # Brokers (3 nodes)
+  broker1:
+    extends:
+      file: .devcontainer/services/pulsar/pulsar.yaml
+      service: broker1
+
+  broker2:
+    extends:
+      file: .devcontainer/services/pulsar/pulsar.yaml
+      service: broker2
+
+  broker3:
+    extends:
+      file: .devcontainer/services/pulsar/pulsar.yaml
+      service: broker3
+
+  # Pulsar Proxy (3 nodes)
+  proxy1:
+    extends:
+      file: .devcontainer/services/pulsar/pulsar.yaml
+      service: proxy1
+
+  proxy2:
+    extends:
+      file: .devcontainer/services/pulsar/pulsar.yaml
+      service: proxy2
+
+  proxy3:
+    extends:
+      file: .devcontainer/services/pulsar/pulsar.yaml
+      service: proxy3
+
+  # HAProxy Load Balancer
+  pulsar-proxy:
+    extends:
+      file: .devcontainer/services/pulsar/pulsar.yaml
+      service: pulsar-proxy
+
+  ####################################################################
+  # Milvus cluster services
+  rootcoord:
+    extends:
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
+      service: rootcoord
+
+  milvus-proxy:
+    extends:
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
+      service: milvus-proxy
+
+  querycoord:
+    extends:
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
+      service:  querycoord
+
+  querynode-1:
+    extends:
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
+      service: querynode-1
+
+  querynode-2:
+    extends:
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
+      service: querynode-2
+
+  querynode-3:
+    extends:
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
+      service: querynode-3
+
+  indexcoord:
+    extends:
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
+      service: indexcoord
+
+  indexnode-1:
+    extends:
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
+      service: indexnode-1
+
+  indexnode-2:
+    extends:
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
+      service: indexnode-2
+
+  indexnode-3:
+    extends:
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
+      service: indexnode-3
+
+  datacoord:
+    extends:
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
+      service: datacoord
+
+  datanode-1:
+    extends:
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
+      service: datanode-1
+
+  datanode-2:
+    extends:
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
+      service: datanode-2
+
+  datanode-3:
+    extends:
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
+      service: datanode-3
+
+  # Milvus Entrypoint
+  milvus-entrypoint:
+    extends:
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
+      service: milvus-entrypoint
+
+  ####################################################################
+  # HAProxy service for load balancing
+  haproxy:
+    extends:
+      file: .devcontainer/services/haproxy/haproxy.yaml
+      service: haproxy
+
+  ####################################################################
+  # Node exporter for host metrics
+  node_exporter:
+    extends:
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
+      service: node_exporter
+
+  ####################################################################
+  # Milvus GUI service
+  milvus-gui:
+    extends:
+      file: .devcontainer/services/milvus/milvus-cluster.yaml
+      service: milvus-gui
+
+  ####################################################################
+  # Prometheus service for monitoring (optional but recommended)
+  prometheus:
+    extends:
+      file: .devcontainer/services/prometheus/prometheus.yaml
+      service: prometheus
+
+  ####################################################################
+  # Grafana service for visualization
+  grafana:
+    extends:
+      file: .devcontainer/services/grafana/grafana.yaml
+      service: grafana
+
+

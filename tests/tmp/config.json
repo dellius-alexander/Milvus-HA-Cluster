@@ -1,0 +1,8 @@
+{
+  "host": "test.milvus.com",
+  "port": "9999",
+  "user": "testuser",
+  "password": "testpass",
+  "timeout": 60,
+  "db_name": "test_db"
+}

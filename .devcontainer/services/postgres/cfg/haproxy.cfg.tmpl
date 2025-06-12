@@ -1,0 +1,126 @@
+# haproxy-patroni.cfg - HAProxy Configuration for Patroni PostgreSQL Cluster
+#
+# Configures HAProxy to load balance a Patroni-managed PostgreSQL cluster.
+# Routes read/write traffic to the primary node (port 5432) and read-only traffic to
+# replicas (port 5433) using Patroni's REST API for health checks.
+# Uses Docker secrets for authentication credentials and supports SSL/TLS.
+
+# Global Settings
+# ===============
+global
+    # Log to stdout in raw format, using syslog facility local0 at info level
+    log stdout format raw local0 info
+
+    # Store HAProxy process ID
+    pidfile /var/run/haproxy.pid
+
+    # Run as haproxy user and group for security
+    user haproxy
+    group haproxy
+
+    # Run in daemon mode
+    daemon
+
+    # Enable runtime administration socket
+    stats socket /var/run/haproxy.sock user haproxy group haproxy mode 660 level admin
+    stats timeout 2m
+
+    # Support high traffic loads
+    maxconn 100000
+    ulimit-n 100000
+
+# Default Settings
+# ================
+defaults
+    # Use TCP mode for PostgreSQL binary protocol
+    mode tcp
+
+    # Inherit global logging settings
+    log global
+
+    # Retry failed connections
+    retries 3
+
+    # Set timeouts for connections and queries
+    timeout connect 5s
+    timeout client 50000s
+    timeout server 50000s
+    timeout check 10s
+
+    # Use round-robin load balancing
+    balance roundrobin
+
+    # Log health check results for debugging
+    option log-health-checks
+
+# Statistics Dashboard
+# ===================
+listen stats
+    # Bind to port 8080 for HTTP-based stats dashboard
+    bind *:8080
+
+    # Use HTTP mode for the stats interface
+    mode http
+
+    # Enable statistics dashboard
+    stats enable
+    stats uri /stats
+    stats realm Haproxy\ Statistics
+    stats auth ${HAPROXY_STATS_USER}:$(cat ${HAPROXY_STATS_PASSWORD_FILE})
+    stats refresh 5s
+    stats show-node
+    stats show-legends
+
+# PostgreSQL Primary Service (Read/Write)
+# ======================================
+listen postgres_primary
+    # Bind to standard PostgreSQL port
+    bind *:5432
+
+    mode tcp
+    option httpchk OPTION * HTTP/1.1
+
+    # Check if node is primary via Patroni REST API
+    http-check send meth GET uri /leader ver HTTP/1.1 hdr Host %[srv_name] hdr Authorization "Basic ${PATRONI_RESTAPI_AUTH_HEADER}" ssl verify required ca-file /run/secrets/postgres_ca_cert.pem
+    http-check expect status 200
+
+    # Server health check settings
+    default-server inter 3s fall 3 rise 2 on-marked-down shutdown-sessions
+
+    # Define backend Patroni nodes
+    server patroni-replica0 patroni-replica0:5432 maxconn 100 check port 8008
+    server patroni-replica1 patroni-replica1:5432 maxconn 100 check port 8008
+    server patroni-replica2 patroni-replica2:5432 maxconn 100 check port 8008
+    server patroni-replica3 patroni-replica3:5432 maxconn 100 check port 8008
+
+# PostgreSQL Replica Service (Read-Only)
+# =====================================
+listen postgres_replicas
+    # Bind to port 5433 for read-only connections
+    bind *:5433
+
+    mode tcp
+    option httpchk OPTION * HTTP/1.1
+
+    # Check if node is healthy (replica or primary) via Patroni REST API
+    http-check send meth GET uri /replica ver HTTP/1.1 hdr Host %[srv_name] hdr Authorization "Basic ${PATRONI_RESTAPI_AUTH_HEADER}" ssl verify required ca-file /run/secrets/postgres_ca_cert.pem
+    http-check expect status 200
+
+    # Server health check settings
+    default-server inter 3s fall 3 rise 2 on-marked-down shutdown-sessions
+
+    # Define backend Patroni nodes
+    server patroni-replica0 patroni-replica0:5432 maxconn 100 check port 8008
+    server patroni-replica1 patroni-replica1:5432 maxconn 100 check port 8008
+    server patroni-replica2 patroni-replica2:5432 maxconn 100 check port 8008
+    server patroni-replica3 patroni-replica3:5432 maxconn 100 check port 8008
+
+# Notes and Best Practices
+# =======================
+# - Passwords are read from Docker secrets (e.g., HAPROXY_STATS_PASSWORD_FILE).
+# - PATRONI_RESTAPI_AUTH_HEADER is generated in haproxy.Dockerfile using secrets.
+# - In production, enable SSL/TLS for the stats dashboard (port 8080).
+# - Ensure patroni-replica hostnames resolve correctly in the Docker network.
+# - Use multiple HAProxy instances with a VIP for high availability.
+# - Monitor health checks via logs and the stats dashboard.
+

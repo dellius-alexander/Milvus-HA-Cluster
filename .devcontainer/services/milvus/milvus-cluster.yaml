@@ -1,0 +1,312 @@
+####################################################################
+# Define networks for service communication
+networks:
+  milvus-network:
+    name: milvus-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  external-network:
+    name: external-network
+    driver: bridge
+    ipam:
+      driver: default
+#####################################################################
+# Variables for the Docker Compose file
+x-variables:
+  # Configuration for deployment
+  milvus_common: &milvus_common
+    build:
+      context: .
+      dockerfile: milvus.Dockerfile
+#    image: milvusdb/milvus:v2.5.9
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+        - milvus-network
+        - pulsar-network
+        - etcd-network
+        - minio-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9091/healthz" ]
+      interval: 30s
+      start_period: 90s
+      timeout: 20s
+      retries: 3
+
+  milvus_environment_vars: &milvus_environment_vars
+    ETCD_ENDPOINTS: etcd-proxy:2379
+    MINIO_ADDRESS: minio-proxy:9000
+    MINIO_ACCESS_KEY_ID: "minioadmin"
+    MINIO_SECRET_ACCESS_KEY: "WW91ckdyYWZhbmFTdHJvbmdQYXNzd29yZDEyMw"
+    PULSAR_ADDRESS: pulsar://pulsar-proxy:6650
+#    ROOT_COORD_ADDRESS: rootcoord:53100
+#    QUERY_COORD_ADDRESS: querycoord:19531
+#    INDEX_COORD_ADDRESS: indexcoord:31000
+#    DATA_COORD_ADDRESS: datacoord:13333
+
+#####################################################################
+services:
+  ####################################################################
+  # Milvus cluster services
+  rootcoord:
+    <<: *milvus_common
+    container_name: milvus-rootcoord
+    command: ["milvus", "run", "rootcoord"]
+    environment:
+      <<: *milvus_environment_vars
+      ROOT_COORD_ADDRESS: rootcoord:53100
+    depends_on:
+      etcd-proxy:
+        condition: service_healthy
+      minio-proxy:
+        condition: service_healthy
+      pulsar-proxy:
+        condition: service_healthy
+
+  milvus-proxy:
+    <<: *milvus_common
+    container_name: milvus-proxy
+    hostname: milvus-proxy
+    command: ["milvus", "run", "proxy"]
+    environment:
+      <<: *milvus_environment_vars
+      ROOT_COORD_ADDRESS: rootcoord:53100
+    expose:
+      - "19530"
+      - "9091"
+    depends_on:
+      etcd-proxy:
+        condition: service_healthy
+      minio-proxy:
+        condition: service_healthy
+      pulsar-proxy:
+        condition: service_healthy
+#      haproxy:
+#        condition: service_healthy
+    networks:
+      - milvus-network
+      - pulsar-network
+      - etcd-network
+      - minio-network
+
+  querycoord:
+    <<: *milvus_common
+    container_name: milvus-querycoord
+    command: ["milvus", "run", "querycoord"]
+    environment:
+      <<: *milvus_environment_vars
+      QUERY_COORD_ADDRESS: querycoord:19531
+    depends_on:
+      etcd-proxy:
+        condition: service_healthy
+      minio-proxy:
+        condition: service_healthy
+      pulsar-proxy:
+        condition: service_healthy
+
+  querynode-1:
+    <<: *milvus_common
+    container_name: milvus-querynode-1
+    command: ["milvus", "run", "querynode"]
+    environment:
+      <<: *milvus_environment_vars
+      QUERY_COORD_ADDRESS: querycoord:19531
+    depends_on:
+      - "querycoord"
+
+  querynode-2:
+    <<: *milvus_common
+    container_name: milvus-querynode-2
+    command: ["milvus", "run", "querynode"]
+    environment:
+      <<: *milvus_environment_vars
+      QUERY_COORD_ADDRESS: querycoord:19531
+    depends_on:
+      - "querycoord"
+
+  querynode-3:
+    <<: *milvus_common
+    container_name: milvus-querynode-3
+    command: ["milvus", "run", "querynode"]
+    environment:
+      <<: *milvus_environment_vars
+      QUERY_COORD_ADDRESS: querycoord:19531
+    depends_on:
+      - "querycoord"
+
+  indexcoord:
+    <<: *milvus_common
+    container_name: milvus-indexcoord
+    command: ["milvus", "run", "indexcoord"]
+    environment:
+      <<: *milvus_environment_vars
+      INDEX_COORD_ADDRESS: indexcoord:31000
+    depends_on:
+      etcd-proxy:
+        condition: service_healthy
+      minio-proxy:
+        condition: service_healthy
+      pulsar-proxy:
+        condition: service_healthy
+
+  indexnode-1:
+    <<: *milvus_common
+    container_name: milvus-indexnode-1
+    command: ["milvus", "run", "indexnode"]
+    environment:
+      <<: *milvus_environment_vars
+      INDEX_COORD_ADDRESS: indexcoord:31000
+    depends_on:
+      - "indexcoord"
+
+  indexnode-2:
+    <<: *milvus_common
+    container_name: milvus-indexnode-2
+    command: ["milvus", "run", "indexnode"]
+    environment:
+      <<: *milvus_environment_vars
+      INDEX_COORD_ADDRESS: indexcoord:31000
+    depends_on:
+      - "indexcoord"
+
+  indexnode-3:
+    <<: *milvus_common
+    container_name: milvus-indexnode-3
+    command: [ "milvus", "run", "indexnode" ]
+    environment:
+      <<: *milvus_environment_vars
+      INDEX_COORD_ADDRESS: indexcoord:31000
+    depends_on:
+      - "indexcoord"
+
+  datacoord:
+    <<: *milvus_common
+    container_name: milvus-datacoord
+    command: ["milvus", "run", "datacoord"]
+    environment:
+      <<: *milvus_environment_vars
+      DATA_COORD_ADDRESS: datacoord:13333
+    depends_on:
+      etcd-proxy:
+        condition: service_healthy
+      minio-proxy:
+        condition: service_healthy
+      pulsar-proxy:
+        condition: service_healthy
+
+  datanode-1:
+    <<: *milvus_common
+    container_name: milvus-datanode-1
+    command: ["milvus", "run", "datanode"]
+    environment:
+      <<: *milvus_environment_vars
+      DATA_COORD_ADDRESS: datacoord:13333
+    depends_on:
+      - "datacoord"
+
+  datanode-2:
+    <<: *milvus_common
+    container_name: milvus-datanode-2
+    command: ["milvus", "run", "datanode"]
+    environment:
+      <<: *milvus_environment_vars
+      DATA_COORD_ADDRESS: datacoord:13333
+    depends_on:
+      - "datacoord"
+
+  datanode-3:
+    <<: *milvus_common
+    container_name: milvus-datanode-3
+    command: ["milvus", "run", "datanode"]
+    environment:
+      <<: *milvus_environment_vars
+      DATA_COORD_ADDRESS: datacoord:13333
+    depends_on:
+      - "datacoord"
+
+  ####################################################################
+  # Milvus Entrypoint
+  milvus-entrypoint:
+    build:
+      context: .
+      dockerfile: haproxy.Dockerfile
+    container_name: milvus-entrypoint
+    hostname: milvus-entrypoint
+    command: [ "haproxy", "-f", "/usr/local/etc/haproxy/haproxy.cfg" ]
+    #    image: haproxy:latest
+    expose:
+      - "19530"
+      - "9091"
+      - "8404"
+    depends_on:
+      minio-proxy:
+        condition: service_healthy
+      etcd-proxy:
+        condition: service_healthy
+      pulsar-proxy:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "haproxy -v" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+        - milvus-network
+
+  ####################################################################
+  # Node exporter for host metrics
+  node_exporter:
+    image: prom/node-exporter:v1.8.0
+    container_name: node_exporter
+    expose:
+      - "9100"
+#    ports:
+#      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: always
+    networks:
+      - milvus-network
+
+  ####################################################################
+  # Milvus GUI service
+  milvus-gui:
+    image: zilliz/attu:latest
+    container_name: milvus-gui
+    environment:
+      MILVUS_URL: http://milvus-entrypoint:19530
+    expose:
+      - "3000"
+    ports:
+      - "3300:3000"
+    depends_on:
+      milvus-entrypoint:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - milvus-network
+

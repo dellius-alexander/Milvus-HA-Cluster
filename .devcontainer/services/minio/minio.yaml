@@ -1,0 +1,125 @@
+####################################################################
+# Define networks for service communication
+networks:
+  minio-network:
+    name: minio-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+
+####################################################################
+# Define persistent volumes for data durability
+volumes:
+  minio_data0:
+    name: minio_data0
+  minio_data1:
+    name: minio_data1
+  minio_data2:
+    name: minio_data2
+#####################################################################
+# Variables for the Docker Compose file
+x-variables:
+  # Minio common configuration
+  x-minio-common: &minio-common
+    build:
+      context: .
+      dockerfile: minio.Dockerfile
+#    image: minio/minio:RELEASE.2025-04-08T15-41-24Z
+    command: ["server", "--console-address", ":9001", "http://minio{0...2}/data"]
+    expose:
+      - "9000"
+      - "9001"
+    environment:
+      MINIO_ROOT_USER : minioadmin
+      MINIO_ROOT_PASSWORD: "WW91ckdyYWZhbmFTdHJvbmdQYXNzd29yZDEyMw"
+      MINIO_OPTS: "--console-address :9001"
+      MINIO_VOLUMES: "http://minio{0...2}/data"
+      MINIO_REGION_NAME: us-east-1
+      MINIO_PROMETHEUS_AUTH_TYPE: public
+      MINIO_NOTIFY_WEBHOOK_ENABLE: "true"
+      MINIO_NOTIFY_WEBHOOK_URL: "http://127.0.0.1:9000/minio/notify"
+      MINIO_NOTIFY_WEBHOOK_KMS_ENABLE: "true"
+      MINIO_NOTIFY_WEBHOOK_KMS_URL: "http://127.0.0.1:9000/minio/notify"
+      MINIO_NOTIFY_WEBHOOK_KMS_REGION: us-east-1
+      MINIO_NOTIFY_WEBHOOK_KMS_ACCESS_KEY: minioadmin
+      MINIO_NOTIFY_WEBHOOK_KMS_SECRET_KEY: "WW91ckdyYWZhbmFTdHJvbmdQYXNzd29yZDEyMw"
+      MINIO_SERVER_URL: "http://127.0.0.1:9000"
+    healthcheck:
+      test: ["CMD", "curl", "-I", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - minio-network
+#####################################################################
+services:
+  ####################################################################
+  # MinIO service for object storage or S3 compatible storage
+  minio0:
+    container_name: minio0
+    hostname: minio0
+    <<: *minio-common
+    volumes:
+      - minio_data0:/data
+
+  minio1:
+    container_name: minio1
+    hostname: minio1
+    <<: *minio-common
+    volumes:
+      - minio_data1:/data
+
+  minio2:
+    container_name: minio2
+    hostname: minio2
+    <<: *minio-common
+    volumes:
+      - minio_data2:/data
+  ####################################################################
+  # HAProxy service for load balancing
+  minio-proxy:
+    build:
+      context: .
+      dockerfile: haproxy.Dockerfile
+    container_name: minio-proxy
+    hostname: minio-proxy
+    command: ["haproxy", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
+#    image: haproxy:latest
+    expose:
+      - "9000"
+      - "9001"
+      - "8404"   # haproxy stats site
+    depends_on:
+      minio0:
+        condition: service_healthy
+      minio1:
+        condition: service_healthy
+      minio2:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "haproxy -v" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - minio-network
+

@@ -1,0 +1,42 @@
+# ssl_config.yml
+# Centralized SSL configuration for Patroni PostgreSQL cluster and HAProxy.
+# Uncomment all sections for production (SSL enabled).
+# Comment out or set ENABLE_SSL=false for development (SSL disabled).
+# All certificate paths assume files are in /run/secrets/ or /var/lib/postgresql/data/.
+
+# PostgreSQL SSL Settings
+postgresql:
+  ssl: true
+  cert_file: /var/lib/postgresql/data/server.crt
+  key_file: /var/lib/postgresql/data/server.key
+  ca_file: /run/secrets/postgres_ca_cert
+  sslmode: require
+  replication:
+    sslcert: /var/lib/postgresql/data/server.crt
+    sslkey: /var/lib/postgresql/data/server.key
+    sslca: /run/secrets/postgres_ca_cert
+  superuser:
+    sslcert: /var/lib/postgresql/data/server.crt
+    sslkey: /var/lib/postgresql/data/server.key
+    sslca: /run/secrets/postgres_ca_cert
+
+# Patroni REST API SSL Settings
+restapi:
+  certfile: /run/secrets/patroni_api_cert
+  keyfile: /run/secrets/patroni_api_key
+  cafile: /run/secrets/patroni_ca_cert
+  verify_client: none  # Options: none, optional, required
+
+# HAProxy SSL Settings for Patroni Health Checks
+haproxy:
+  health_check_ssl: true
+  ca_file: /run/secrets/postgres_ca_cert
+
+# Certificate Sources
+certificates:
+  postgres_ca_cert: /run/secrets/postgres_ca_cert
+  patroni_api_cert: /run/secrets/patroni_api_cert
+  patroni_api_key: /run/secrets/patroni_api_key
+  patroni_ca_cert: /run/secrets/patroni_ca_cert
+  postgres_server_cert: /var/lib/postgresql/data/server.crt
+  postgres_server_key: /var/lib/postgresql/data/server.key

@@ -1,0 +1,105 @@
+# patroni-conf.yml
+# Patroni configuration for a PostgreSQL high-availability cluster.
+# Uses environment variables and Docker secrets for sensitive data.
+# Configures SSL/TLS and .pgpass for secure PostgreSQL authentication.
+
+scope: ${PATRONI_SCOPE}
+namespace: ${PATRONI_NAMESPACE}
+name: ${PATRONI_NAME}
+
+restapi:
+  listen: ${PATRONI_RESTAPI_LISTEN}
+  connect_address: ${PATRONI_RESTAPI_CONNECT_ADDRESS}
+  authentication:
+    username: ${PATRONI_RESTAPI_USERNAME}
+    password: $(cat ${PATRONI_RESTAPI_PASSWORD_FILE})
+  certfile: ${PATRONI_RESTAPI_CERTFILE}
+  keyfile: ${PATRONI_RESTAPI_KEYFILE}
+  cafile: ${PATRONI_RESTAPI_CAFILE}
+  verify_client: ${PATRONI_RESTAPI_VERIFY_CLIENT}
+  allowlist: ${PATRONI_RESTAPI_ALLOWLIST}
+  allowlist_include_members: ${PATRONI_RESTAPI_ALLOWLIST_INCLUDE_MEMBERS}
+
+etcd3:
+  hosts: ${PATRONI_ETCD3_HOSTS}
+  protocol: ${PATRONI_ETCD3_PROTOCOL}
+  use_proxies: ${PATRONI_ETCD3_USE_PROXIES}
+  api_version: 3
+
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    maximum_lag_on_failover: 1048576
+    postgresql:
+      use_pg_rewind: true
+      pg_hba:
+        - hostssl all all 0.0.0.0/0 md5  # Require SSL for all connections
+        - hostssl replication ${PATRONI_POSTGRESQL_REPLICATION_USERNAME} 0.0.0.0/0 md5
+      use_slots: true
+      parameters:
+        max_connections: 100
+        max_prepared_transactions: 0
+        wal_level: replica
+        hot_standby: "on"
+        wal_log_hints: "on"
+        max_wal_senders: 10
+        max_replication_slots: 10
+        wal_keep_size: 128MB
+        archive_mode: "on"
+        archive_command: "mkdir -p ../archive && cp %p ../archive/%f"
+        hot_standby_feedback: "on"
+        ssl: "on"
+        ssl_cert_file: /var/lib/postgresql/data/server.crt
+        ssl_key_file: /var/lib/postgresql/data/server.key
+        ssl_ca_file: ${PATRONI_REPLICATION_SSLROOTCERT}
+  initdb:
+    - encoding: UTF8
+    - data-checksums
+
+postgresql:
+  listen: ${PATRONI_POSTGRESQL_LISTEN}
+  connect_address: ${PATRONI_POSTGRESQL_CONNECT_ADDRESS}
+  data_dir: ${PATRONI_POSTGRESQL_DATA_DIR}
+  pgpass: ${PGPASSFILE}
+  authentication:
+    superuser:
+      username: ${PATRONI_POSTGRESQL_USERNAME}
+      password: $(cat ${POSTGRES_PASSWORD_FILE})
+    replication:
+      username: ${PATRONI_POSTGRESQL_REPLICATION_USERNAME}
+      password: $(cat ${PATRONI_POSTGRESQL_REPLICATION_PASSWORD_FILE})
+  parameters:
+    unix_socket_directories: /var/run/postgresql
+    archive_timeout: 600
+    log_min_messages: INFO
+    log_connections: "on"
+    log_disconnections: "on"
+    log_line_prefix: "%m [%p] %u@%d "
+  pg_hba_file: /etc/postgresql/pg_hba.conf
+
+log:
+  type: ${PATRONI_LOG_TYPE}
+  format: ${PATRONI_LOG_FORMAT}
+  static_fields: ${PATRONI_LOG_STATIC_FIELDS}
+  level: ${PATRONI_LOG_LEVEL}
+  file_num: ${PATRONI_LOG_FILE_NUM}
+  file_size: ${PATRONI_LOG_FILE_SIZE}
+  datefmt: "%Y-%m-%d %H:%M:%S,%f"
+  handlers: ${PATRONI_LOG_HANDLERS}
+  deduplicate_heartbeat_logs: true
+
+tags:
+  nofailover: false
+  noloadbalance: false
+  clonefrom: true
+  nosync: false
+
+# Notes:
+# - Passwords are read from Docker secrets via file paths.
+# - The .pgpass file is specified via PGPASSFILE for PostgreSQL authentication.
+# - SSL/TLS is enabled with hostssl in pg_hba for secure connections.
+# - REST API is secured with SSL and client certificate verification.
+# - In production, ensure valid SSL certificates are provided.
+# - Use patronictl to manage and monitor the cluster.

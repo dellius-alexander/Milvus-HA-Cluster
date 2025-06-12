@@ -1,0 +1,157 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: milvus-cluster
+
+scrape_configs:
+  # Milvus components metrics
+  - job_name: 'milvus'
+    static_configs:
+      - targets:
+        - 'milvus-proxy:9091'
+        - 'milvus-rootcoord:9091'
+        - 'milvus-querycoord:9091'
+        - 'milvus-querynode-1:9091'
+        - 'milvus-querynode-2:9091'
+        - 'milvus-querynode-3:9091'
+        - 'milvus-indexcoord:9091'
+        - 'milvus-indexnode-1:9091'
+        - 'milvus-indexnode-2:9091'
+        - 'milvus-indexnode-3:9091'
+        - 'milvus-datacoord:9091'
+        - 'milvus-datanode-1:9091'
+        - 'milvus-datanode-2:9091'
+        - 'milvus-datanode-3:9091'
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - target_label: service
+        replacement: milvus
+
+  # etcd cluster metrics
+  - job_name: 'etcd'
+    static_configs:
+      - targets:
+        - 'etcd0:2379'
+        - 'etcd1:2379'
+        - 'etcd2:2379'
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - target_label: service
+        replacement: etcd
+
+  # MinIO cluster metrics
+  - job_name: 'minio'
+    static_configs:
+      - targets:
+        - 'minio0:9000'
+        - 'minio1:9000'
+        - 'minio2:9000'
+    metrics_path: /minio/v2/metrics/cluster
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - target_label: service
+        replacement: minio
+
+  # Pulsar cluster metrics
+  - job_name: 'pulsar'
+    static_configs:
+      - targets:
+        - 'broker1:8080'
+        - 'broker2:8080'
+        - 'broker3:8080'
+        - 'bookie1:8080'
+        - 'bookie2:8080'
+        - 'bookie3:8080'
+        - 'proxy1:8080'
+        - 'proxy2:8080'
+        - 'proxy3:8080'
+        - 'zookeeper1:8000'
+        - 'zookeeper2:8000'
+        - 'zookeeper3:8000'
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - target_label: service
+        replacement: pulsar
+
+  # HAProxy metrics (all HAProxy services)
+  - job_name: 'haproxy'
+    static_configs:
+      - targets:
+        - 'haproxy:8404'
+        - 'etcd-proxy:8404'
+        - 'minio-proxy:8404'
+        - 'pulsar-proxy:8404'
+        - 'milvus-entrypoint:8404'
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - target_label: service
+        replacement: haproxy
+    # Note: Assumes HAProxy services are configured with a Prometheus exporter on port 8404.
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets:
+        - 'prometheus:9090'
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - target_label: service
+        replacement: prometheus
+
+  # Node Exporter metrics
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets:
+        - 'node_exporter:9100'
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - target_label: service
+        replacement: node_exporter
+
+  # Grafana metrics
+  - job_name: 'grafana'
+    static_configs:
+      - targets:
+        - 'grafana:3000'
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - target_label: service
+        replacement: grafana
+    # Note: Assumes Grafana is configured to expose Prometheus metrics on port 3000.
+
+  # Milvus GUI metrics
+  - job_name: 'milvus_gui'
+    static_configs:
+      - targets:
+        - 'milvus-gui:3000'
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - target_label: service
+        replacement: milvus_gui
+    # Note: Assumes Milvus GUI (Attu) exposes Prometheus metrics on port 3000. If not, this job may need adjustment.
+
+# Purpose:
+# - Configures Prometheus to scrape metrics from all services in the Milvus Docker Compose setup, including internal and external services.
+# - Targets Milvus components (port 9091), etcd (2379), MinIO (9000), Pulsar components (8080, 8000), all HAProxy services (8404), Prometheus (9090), Node Exporter (9100), Grafana (3000), and Milvus GUI (3000).
+# - Uses a 15-second scrape interval for near-real-time monitoring.
+# - Applies relabel_configs to organize metrics by instance and service type.
+# - Ensures comprehensive observability for performance, health, and debugging in a Docker environment.
+# - Notes assumptions about metrics endpoints (e.g., HAProxy, Grafana, Milvus GUI) which may require verification or additional configuration.

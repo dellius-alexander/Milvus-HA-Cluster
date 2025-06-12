@@ -1,0 +1,33 @@
+# Define networks so our containers can talk to each other securely
+networks:
+  # External network for the client to connect to HAProxy
+  external-network:
+    name: external-network
+    driver: bridge
+    external: true
+
+
+services:
+  # Client: Tests the database cluster
+  client:
+    build:
+      context: .
+      dockerfile: client.Dockerfile
+    container_name: postgres-client
+    hostname: postgres-client
+    networks:
+      - external-network
+    depends_on:
+      postgres-haproxy:
+        condition: service_healthy
+    environment:
+      - PG_HOST=postgres-haproxy
+      - PG_PORT=5432
+      - PG_USER=admin
+      - PG_PASSWORD_FILE=/run/secrets/postgres_password
+      - PG_DATABASE=milvus
+      - HAPROXY_STATS_URL=http://postgres-haproxy:8080/stats
+      - HAPROXY_STATS_USER=admin
+      - HAPROXY_STATS_PASSWORD=admin123
+#    secrets:
+#      - postgres_password

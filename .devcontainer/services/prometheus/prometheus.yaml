@@ -1,0 +1,70 @@
+####################################################################
+# Define networks for service communication
+networks:
+  milvus-network:
+    name: milvus-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  minio-network:
+    name: minio-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  etcd-network:
+    name: etcd-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  prometheus-network:
+    name: prometheus-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+  pulsar-network:
+    name: pulsar-network
+    internal: true
+    driver: bridge
+    ipam:
+      driver: default
+####################################################################
+# Define persistent volumes for data durability
+volumes:
+  prometheus_data:
+    name: prometheus_data
+
+#####################################################################
+services:
+  ####################################################################
+  # Prometheus service for monitoring (optional but recommended)
+  prometheus:
+    # Use a custom Dockerfile for Prometheus to ensure optimized configuration
+    build:
+      context: .
+      dockerfile: prometheus.Dockerfile
+    # Container name for easy identification
+    container_name: prometheus
+    hostname: prometheus
+    # Prometheus environment variables
+    environment:
+      # Log level for Prometheus (info for production, debug for troubleshooting)
+      PROMETHEUS_LOG_LEVEL: info
+    # Mount custom Prometheus configuration
+    volumes:
+      - prometheus_data:/prometheus
+    # Expose Prometheus port
+    expose:
+      - "9090"
+    # Restart policy
+    restart: on-failure
+    networks:
+      - milvus-network
+      - etcd-network
+      - minio-network
+      - prometheus-network
+      - pulsar-network
+
