@@ -3,8 +3,7 @@ import os
 import unittest
 
 import pytest
-from pymilvus import FieldSchema, DataType, Collection
-
+from pymilvus import Collection, DataType, FieldSchema
 from src.logger import getLogger as GetLogger
 from src.milvus.connect import ConnectAPI
 from src.milvus.milvus import MilvusAPI

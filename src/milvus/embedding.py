@@ -1,18 +1,18 @@
-from typing import List, Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 
-from src.milvus.exceptions import MilvusValidationError, MilvusAPIError
-from src.milvus.interfaces import IEmbeddingAPI, IConnectAPI
-from src.utils import async_log_decorator
 from src.logger import getLogger as GetLogger
+from src.milvus.exceptions import MilvusAPIError, MilvusValidationError
+from src.milvus.interfaces import IConnectAPI, IEmbeddingAPI
+from src.utils import async_log_decorator
 
 # Logging setup
 log = GetLogger(__name__)
 
 class EmbeddingAPI(IEmbeddingAPI):
-    """
-    Generates embeddings using a provided model for Milvus.
+    """Generates embeddings using a provided model for Milvus.
 
     Implements the IEmbeddingAPI interface to handle embedding generation.
 
@@ -32,6 +32,7 @@ class EmbeddingAPI(IEmbeddingAPI):
     Raises:
         MilvusAPIError: If embedding generation fails.
         MilvusValidationError: If input parameters are invalid.
+
     """
 
     def __init__(self, connect_api: IConnectAPI):
@@ -39,11 +40,12 @@ class EmbeddingAPI(IEmbeddingAPI):
 
         Args:
             connect_api (IConnectAPI): The connection API instance for Milvus operations.
+
         """
         self._connect_api = connect_api
 
     @async_log_decorator
-    def generate_embeddings(self, data: List[Any], embedding_model: Callable[[List[Any]], np.ndarray],
+    def generate_embeddings(self, data: list[Any], embedding_model: Callable[[list[Any]], np.ndarray],
                                   embedding_type: str = "float", batch_size: int = 32) -> np.ndarray:
         """Generates embeddings for the provided data.
 
@@ -59,6 +61,7 @@ class EmbeddingAPI(IEmbeddingAPI):
         Raises:
             MilvusValidationError: If inputs are invalid.
             MilvusAPIError: If embedding generation fails.
+
         """
         if not data:
             raise MilvusValidationError("Data must be a non-empty list")

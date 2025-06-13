@@ -1,11 +1,9 @@
-"""
-The pytest_configure hook is automatically invoked by pytest
+"""The pytest_configure hook is automatically invoked by pytest
 during the test session initialization. You don't need to
 explicitly call it when running a test file. Instead, you
 define it in a conftest.py file, and pytest will automatically
 execute it before running any tests.
 """
-import logging
 from src.logger import getLogger as GetLogger
 
 log = GetLogger(__name__)

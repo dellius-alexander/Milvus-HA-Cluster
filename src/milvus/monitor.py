@@ -1,12 +1,12 @@
 import datetime
-from typing import Dict, Any
+from typing import Any
 
 from pymilvus import Collection, MilvusException
 from pymilvus.orm import utility
 
 from src.logger import getLogger as GetLogger
 from src.milvus.exceptions import MilvusAPIError
-from src.milvus.interfaces import IMonitorAPI, IConnectAPI
+from src.milvus.interfaces import IConnectAPI, IMonitorAPI
 from src.utils import async_log_decorator
 
 # Logging setup
@@ -14,8 +14,7 @@ log = GetLogger(__name__)
 
 
 class MonitorAPI(IMonitorAPI):
-    """
-    Provides monitoring information for the Milvus server.
+    """Provides monitoring information for the Milvus server.
 
     Implements the IMonitorAPI interface to retrieve server metrics.
 
@@ -34,6 +33,7 @@ class MonitorAPI(IMonitorAPI):
 
     Raises:
         MilvusAPIError: If monitoring information retrieval fails.
+
     """
 
     def __init__(self, connect_api: IConnectAPI):
@@ -41,11 +41,12 @@ class MonitorAPI(IMonitorAPI):
 
         Args:
             connect_api (IConnectAPI): The connection API instance for Milvus operations.
+
         """
         self._connect_api = connect_api
 
     @async_log_decorator
-    def get_monitor_info(self) -> Dict[str, Any]:
+    def get_monitor_info(self) -> dict[str, Any]:
         """Gets monitoring information for the Milvus server.
 
         Returns:
@@ -53,6 +54,7 @@ class MonitorAPI(IMonitorAPI):
 
         Raises:
             MilvusAPIError: If info retrieval fails.
+
         """
         try:
             server_version = utility.get_server_version()

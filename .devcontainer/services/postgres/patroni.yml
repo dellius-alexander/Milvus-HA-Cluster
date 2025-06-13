@@ -66,6 +66,23 @@ secrets:
 
 # Define services
 services:
+  # HashiCorp Vault service for secret management
+  vault:
+    image: vault:1.13
+    container_name: vault
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=${VAULT_TOKEN}
+      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+    ports:
+      - "8200:8200"
+    networks:
+      - patroni-network
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   # etcd services (unchanged)
   etcd0:
     extends:

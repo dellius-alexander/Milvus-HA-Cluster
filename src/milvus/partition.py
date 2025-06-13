@@ -1,18 +1,16 @@
 from pymilvus import Collection, MilvusException
 
-from src.milvus.exceptions import MilvusValidationError, MilvusAPIError
-from src.milvus.interfaces import IPartitionAPI, IConnectAPI
-from src.utils import async_log_decorator
-
 from src.logger import getLogger as GetLogger
+from src.milvus.exceptions import MilvusAPIError, MilvusValidationError
+from src.milvus.interfaces import IConnectAPI, IPartitionAPI
+from src.utils import async_log_decorator
 
 # Logging setup
 log = GetLogger(__name__)
 
 
 class PartitionAPI(IPartitionAPI):
-    """
-    Manages partitions within Milvus collections.
+    """Manages partitions within Milvus collections.
 
     Implements the IPartitionAPI interface to handle partition creation and deletion.
 
@@ -33,12 +31,15 @@ class PartitionAPI(IPartitionAPI):
     Raises:
         MilvusAPIError: If partition operations fail.
         MilvusValidationError: If input parameters are invalid.
+
     """
+
     def __init__(self, connect_api: IConnectAPI):
         """Initializes PartitionAPI with a connection instance.
 
         Args:
             connect_api (IConnectAPI): The connection API instance for Milvus operations.
+
         """
         self._connect_api = connect_api
 
@@ -54,6 +55,7 @@ class PartitionAPI(IPartitionAPI):
         Raises:
             MilvusValidationError: If inputs are invalid.
             MilvusAPIError: If partition creation fails.
+
         """
         if not collection_name or not isinstance(collection_name, str):
             raise MilvusValidationError("Collection name must be a non-empty string")
@@ -79,6 +81,7 @@ class PartitionAPI(IPartitionAPI):
         Raises:
             MilvusValidationError: If inputs are invalid.
             MilvusAPIError: If partition drop fails.
+
         """
         if not collection_name or not isinstance(collection_name, str):
             raise MilvusValidationError("Collection name must be a non-empty string")

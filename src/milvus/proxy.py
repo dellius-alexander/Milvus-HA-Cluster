@@ -3,8 +3,7 @@ from src.utils import SecurityManager
 
 
 class Proxy:
-    """
-    Proxy for controlling access to Milvus operations.
+    """Proxy for controlling access to Milvus operations.
 
     Implements access control using a security manager.
 
@@ -24,6 +23,7 @@ class Proxy:
 
     Raises:
         MilvusAPIError: If authorization or request fails.
+
     """
 
     def __init__(self, real_subject, security: SecurityManager):
@@ -31,8 +31,7 @@ class Proxy:
         self.security = security
 
     def request(self, *args, **kwargs):
-        """
-        Handles the proxied request with authorization.
+        """Handles the proxied request with authorization.
 
         Args:
             *args: Positional arguments for the request.
@@ -43,6 +42,7 @@ class Proxy:
 
         Raises:
             NotImplementedError: If the method is not implemented correctly.
+
         """
         if self.security.authorize(self.security.config.get("user"), "read"):
             return self.real_subject.request(*args, **kwargs)

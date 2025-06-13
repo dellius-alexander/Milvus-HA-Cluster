@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # File: src.logger.py
-import traceback
 import logging
 import logging.config
 import os
-from src.__config__ import log_config, LOG_DIR
+import traceback
+
+from src.__config__ import LOG_DIR, log_config
 
 # Flag to track if logging has been configured
 _logging_configured = False

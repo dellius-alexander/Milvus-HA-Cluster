@@ -2,12 +2,11 @@ import os
 
 
 def get_jupyter_password_hash():
-    """
-    Retrieves the Jupyter Notebook password hash from the config file.
+    """Retrieves the Jupyter Notebook password hash from the config file.
     """
     config_file_path = os.path.expanduser("~/.jupyter/jupyter_server_config.json")
     try:
-        with open(config_file_path, 'r') as f:
+        with open(config_file_path) as f:
             for line in f:
                 if "hashed_password" in line:
                     # Extract the hashed password value

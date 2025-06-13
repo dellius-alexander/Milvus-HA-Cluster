@@ -1,18 +1,15 @@
-from typing import List, Dict, Any
+from typing import Any
 
-from src.milvus.exceptions import MilvusValidationError, MilvusAPIError
-from src.milvus.interfaces import IOperation, IStrategy, IVectorAPI
-
-from src.milvus.interfaces import ICommand
 from src.logger import getLogger as GetLogger
+from src.milvus.exceptions import MilvusAPIError, MilvusValidationError
+from src.milvus.interfaces import ICommand, IOperation, IStrategy, IVectorAPI
 
 # Logging setup
 log = GetLogger(__name__)
 
 
 class InsertOperation(IOperation):
-    """
-    Template method for insert operations in Milvus.
+    """Template method for insert operations in Milvus.
 
     Implements the IOperation interface to define a structured insertion process with validation,
     performance, and post-processing steps.
@@ -36,6 +33,7 @@ class InsertOperation(IOperation):
     Raises:
         MilvusAPIError: If the insertion operation fails.
         MilvusValidationError: If input parameters are invalid.
+
     """
 
     def __init__(self, api: 'VectorAPI'):
@@ -43,9 +41,8 @@ class InsertOperation(IOperation):
 
     def validate(self,
                        collection_name: str,
-                       entities: List[Dict[str, Any]], **kwargs) -> bool:
-        """
-        Validates the input parameters for the insertion operation.
+                       entities: list[dict[str, Any]], **kwargs) -> bool:
+        """Validates the input parameters for the insertion operation.
 
         Args:
             collection_name (str): Name of the collection.
@@ -57,6 +54,7 @@ class InsertOperation(IOperation):
 
         Raises:
             MilvusValidationError: If validation fails.
+
         """
         if not collection_name or not entities:
             raise MilvusValidationError("Invalid input")
@@ -75,9 +73,8 @@ class InsertOperation(IOperation):
 
     def perform(self,
                       collection_name: str,
-                      entities: List[Dict[str, Any]], **kwargs):
-        """
-        Performs the insertion operation.
+                      entities: list[dict[str, Any]], **kwargs):
+        """Performs the insertion operation.
 
         Args:
             collection_name (str): Name of the collection.
@@ -86,12 +83,12 @@ class InsertOperation(IOperation):
 
         Returns:
             Any: Result of the insertion operation.
+
         """
         return self.api.insert(collection_name, entities, **kwargs)
 
     def post_process(self, result):
-        """
-        Handles post-processing of the insertion result.
+        """Handles post-processing of the insertion result.
 
         Args:
             result: Result of the insertion operation.
@@ -104,8 +101,7 @@ class InsertOperation(IOperation):
 
 
 class InsertCommand(ICommand):
-    """
-    Command for inserting data into Milvus collections.
+    """Command for inserting data into Milvus collections.
 
     Implements the ICommand interface to encapsulate insertion operations.
 
@@ -127,25 +123,26 @@ class InsertCommand(ICommand):
     Raises:
         MilvusAPIError: If the insertion operation fails.
         MilvusValidationError: If input parameters are invalid.
+
     """
-    def __init__(self, api: 'VectorAPI', collection_name: str, entities: List[Dict[str, Any]]):
+
+    def __init__(self, api: 'VectorAPI', collection_name: str, entities: list[dict[str, Any]]):
         self.api = api
         self.collection_name = collection_name
         self.entities = entities
 
     def execute(self):
-        """
-        Executes the insertion command.
+        """Executes the insertion command.
 
         Returns:
             Any: Result of the insertion operation.
+
         """
         return self.api.insert(self.collection_name, self.entities)
 
 
 class InsertStrategy(IStrategy):
-    """
-    Strategy for inserting data into Milvus collections.
+    """Strategy for inserting data into Milvus collections.
 
     Implements the IStrategy interface to define data insertion behavior.
 
@@ -162,14 +159,14 @@ class InsertStrategy(IStrategy):
     Raises:
         MilvusAPIError: If the insertion operation fails.
         MilvusValidationError: If input parameters are invalid.
+
     """
 
     def execute(self,
                       api: IVectorAPI,
                       collection_name: str,
-                      entities: List[Dict[str, Any]], **kwargs):
-        """
-        Performs the insertion operation.
+                      entities: list[dict[str, Any]], **kwargs):
+        """Performs the insertion operation.
 
         Args:
             api (VectorAPI): The vector API instance.
@@ -179,6 +176,7 @@ class InsertStrategy(IStrategy):
 
         Returns:
             Any: Result of the insertion operation.
+
         """
         return api.insert(collection_name, entities, **kwargs)
 

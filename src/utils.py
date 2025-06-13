@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # File: src.utils.py
 import base64
 import hashlib
@@ -7,12 +6,12 @@ import hmac
 import json
 import os
 from functools import wraps
-from typing import Any, Dict
+from typing import Any
 
-from PIL import Image
+# from PIL import Image
 from cryptography.fernet import Fernet
-from src.logger import getLogger as GetLogger
 
+from src.logger import getLogger as GetLogger
 
 # Logging setup
 log = GetLogger(__name__)
@@ -48,13 +47,14 @@ def log_decorator(func):
 
 # Configuration Management
 class ConfigManager:
-    """
-    Manages Milvus configuration settings from a file or environment variables.
+    """Manages Milvus configuration settings from a file or environment variables.
 
     Attributes:
         config (Dict): Configuration dictionary with host, port, user, password, etc.
+
     """
-    config: Dict[str, Any] = None
+
+    config: dict[str, Any] = None
 
     def __init__(self, config_file: str or dict = "config.json"):
         """Initialize with a config file path.
@@ -75,19 +75,20 @@ class ConfigManager:
             "db_name": "default",
             "encryption_key": base64.urlsafe_b64encode(b"32byteslongkeyforfernetencryption!")
             }
+
         """
         self.config = self._load_config(config_file)
 
     @log_decorator
-    def _load_config(self, config_file: str) -> Dict:
-        """
-        Load configuration from file or environment variables.
+    def _load_config(self, config_file: str) -> dict:
+        """Load configuration from file or environment variables.
 
         Args:
             config_file (str): Path to the configuration file.
 
         Returns:
             Dict: Configuration dictionary.
+
         """
         defaults = {
             "host": "127.0.0.1",
@@ -103,7 +104,7 @@ class ConfigManager:
             # config_file = json.dumps(config_file)
             return config_file
         if os.path.exists(config_file):
-            with open(config_file, 'r') as f:
+            with open(config_file) as f:
                 config = json.load(f)
                 defaults.update(config)
         for key in defaults:
@@ -112,14 +113,14 @@ class ConfigManager:
 
     @log_decorator
     def get(self, key: str) -> Any:
-        """
-        Get a configuration value.
+        """Get a configuration value.
 
         Args:
             key (str): Configuration key.
 
         Returns:
             Any: Configuration value.
+
         """
         return self.config.get(key)
 
@@ -138,12 +139,13 @@ class ConfigManager:
 
 # Security Utilities
 class SecurityManager:
-    """
-    Handles encryption, authentication, and authorization.
+    """Handles encryption, authentication, and authorization.
 
     Attributes:
         cipher (Fernet): Fernet cipher for encryption/decryption.
+
     """
+
     cipher: Fernet = None
     config: ConfigManager = None
 
@@ -164,34 +166,33 @@ class SecurityManager:
 
     @log_decorator
     def encrypt(self, data: str) -> str:
-        """
-        Encrypt data.
+        """Encrypt data.
 
         Args:
             data (str): Data to encrypt.
 
         Returns:
             str: Encrypted data.
+
         """
         return self.cipher.encrypt(data.encode()).decode()
 
     @log_decorator
     def decrypt(self, encrypted_data: str) -> str:
-        """
-        Decrypt data.
+        """Decrypt data.
 
         Args:
             encrypted_data (str): Encrypted data.
 
         Returns:
             str: Decrypted data.
+
         """
         return self.cipher.decrypt(encrypted_data.encode()).decode()
 
     @log_decorator
     def hash_password(self, password: str, key: bytes) -> str:
-        """
-        Hash a password.
+        """Hash a password.
 
         Args:
             password (str): Password to hash.
@@ -199,13 +200,13 @@ class SecurityManager:
 
         Returns:
             str: Hashed password.
+
         """
         return hmac.new(key, password.encode(), hashlib.sha256).hexdigest()
 
     @log_decorator
     def authorize(self, user: str, action: str) -> bool:
-        """
-        Authorize an action for a user.
+        """Authorize an action for a user.
 
         Args:
             user (str): Username.
@@ -213,6 +214,7 @@ class SecurityManager:
 
         Returns:
             bool: True if authorized, False otherwise.
+
         """
         roles = {"admin": ["all"], "user": ["read", "write"]}
         user_role = "admin" if user == self.config.get("user") else "user"
@@ -234,32 +236,32 @@ class SecurityManager:
         }
 
 
-def resize_image(input_path, output_path, new_width, new_height):
-    try:
-        # Check if the input file exists
-        if not os.path.exists(input_path):
-            raise FileNotFoundError(f"The input file {input_path} does not exist.")
-
-        # Check if the input file is a valid image
-        if not input_path.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')):
-            raise ValueError(f"The input file {input_path} is not a valid image format.")
-
-        # Check if the output directory exists, create it if not
-        output_dir = os.path.dirname(output_path)
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-
-        # Open the image
-        image = Image.open(input_path)
-
-        # Resize the image
-        resized_image = image.resize((new_width, new_height), Image.Resampling.HAMMING)
-
-        # Save the resized image
-        resized_image.save(output_path, format='PNG')
-        log.info(f"Image resized to {new_width}x{new_height} and saved as {output_path}")
-    except Exception as e:
-        log.error(f"Error resizing image: {e}")
+# def resize_image(input_path, output_path, new_width, new_height):
+#     try:
+#         # Check if the input file exists
+#         if not os.path.exists(input_path):
+#             raise FileNotFoundError(f"The input file {input_path} does not exist.")
+#
+#         # Check if the input file is a valid image
+#         if not input_path.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')):
+#             raise ValueError(f"The input file {input_path} is not a valid image format.")
+#
+#         # Check if the output directory exists, create it if not
+#         output_dir = os.path.dirname(output_path)
+#         if not os.path.exists(output_dir):
+#             os.makedirs(output_dir)
+#
+#         # Open the image
+#         image = Image.open(input_path)
+#
+#         # Resize the image
+#         resized_image = image.resize((new_width, new_height), Image.Resampling.HAMMING)
+#
+#         # Save the resized image
+#         resized_image.save(output_path, format='PNG')
+#         log.info(f"Image resized to {new_width}x{new_height} and saved as {output_path}")
+#     except Exception as e:
+#         log.error(f"Error resizing image: {e}")
 
 
 # # Example usage

@@ -81,7 +81,7 @@ listen postgres_primary
     option httpchk OPTION * HTTP/1.1
 
     # Check if node is primary via Patroni REST API
-    http-check send meth GET uri /leader ver HTTP/1.1 hdr Host %[srv_name] hdr Authorization "Basic ${PATRONI_RESTAPI_AUTH_HEADER}" ssl verify required ca-file /run/secrets/postgres_ca_cert.pem
+    http-check send meth GET uri /leader ver HTTP/1.1 hdr Host %[srv_name] hdr Authorization "Basic ${PATRONI_RESTAPI_AUTH_HEADER}" ${ENVIRONMENT:-dev} = "prod" ? ssl verify required ca-file /run/secrets/postgres_ca_cert : ""
     http-check expect status 200
 
     # Server health check settings
@@ -103,7 +103,7 @@ listen postgres_replicas
     option httpchk OPTION * HTTP/1.1
 
     # Check if node is healthy (replica or primary) via Patroni REST API
-    http-check send meth GET uri /replica ver HTTP/1.1 hdr Host %[srv_name] hdr Authorization "Basic ${PATRONI_RESTAPI_AUTH_HEADER}" ssl verify required ca-file /run/secrets/postgres_ca_cert.pem
+    http-check send meth GET uri /replica ver HTTP/1.1 hdr Host %[srv_name] hdr Authorization "Basic ${PATRONI_RESTAPI_AUTH_HEADER}" ${ENVIRONMENT:-dev} = "prod" ? ssl verify required ca-file /run/secrets/postgres_ca_cert : ""
     http-check expect status 200
 
     # Server health check settings
@@ -115,12 +115,8 @@ listen postgres_replicas
     server patroni-replica2 patroni-replica2:5432 maxconn 100 check port 8008
     server patroni-replica3 patroni-replica3:5432 maxconn 100 check port 8008
 
-# Notes and Best Practices
-# =======================
-# - Passwords are read from Docker secrets (e.g., HAPROXY_STATS_PASSWORD_FILE).
-# - PATRONI_RESTAPI_AUTH_HEADER is generated in haproxy.Dockerfile using secrets.
-# - In production, enable SSL/TLS for the stats dashboard (port 8080).
-# - Ensure patroni-replica hostnames resolve correctly in the Docker network.
-# - Use multiple HAProxy instances with a VIP for high availability.
-# - Monitor health checks via logs and the stats dashboard.
+# Notes:
+# - Set ENVIRONMENT=prod for SSL-enabled health checks; ENVIRONMENT=dev for non-SSL.
+# - Secrets are fetched from HashiCorp Vault.
+# - Monitor via /stats endpoint (port 8080).
 

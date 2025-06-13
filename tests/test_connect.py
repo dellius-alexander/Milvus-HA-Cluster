@@ -1,9 +1,9 @@
-import pytest
 import os
 from unittest import TestCase
 
-from src.milvus.connect import ConnectAPI
+import pytest
 from src.logger import getLogger
+from src.milvus.connect import ConnectAPI
 
 log = getLogger(__name__)
 

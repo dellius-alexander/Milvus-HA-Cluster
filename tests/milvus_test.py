@@ -1,9 +1,14 @@
 import os
-import pytest
-import numpy as np
 from unittest.mock import MagicMock, patch
-from pymilvus import Collection, FieldSchema, CollectionSchema, DataType, connections, MilvusException
-import configparser
+
+import numpy as np
+import pytest
+from pymilvus import (
+    CollectionSchema,
+    DataType,
+    FieldSchema,
+    MilvusException,
+)
 from src.logger import getLogger
 from src.milvus.collection import CollectionAPI
 from src.milvus.connect import ConnectAPI

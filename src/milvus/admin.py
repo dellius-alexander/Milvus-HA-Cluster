@@ -1,18 +1,16 @@
-from typing import List
 
 from pymilvus import MilvusException
 
-from src.milvus.exceptions import MilvusValidationError, MilvusAPIError
+from src.logger import getLogger as GetLogger
+from src.milvus.exceptions import MilvusAPIError, MilvusValidationError
 from src.milvus.interfaces import IAdminAPI, IConnectAPI
 from src.utils import async_log_decorator
-from src.logger import getLogger as GetLogger
 
 # Logging setup
 log = GetLogger(__name__)
 
 class AdminAPI(IAdminAPI):
-    """
-    Manages administrative tasks in Milvus, such as user management.
+    """Manages administrative tasks in Milvus, such as user management.
 
     Implements the IAdminAPI interface to handle administrative operations.
 
@@ -33,6 +31,7 @@ class AdminAPI(IAdminAPI):
     Raises:
         MilvusAPIError: If administrative operations fail.
         MilvusValidationError: If input parameters are invalid.
+
     """
 
     def __init__(self, connect_api: IConnectAPI):
@@ -40,6 +39,7 @@ class AdminAPI(IAdminAPI):
 
         Args:
             connect_api (IConnectAPI): The connection API instance for Milvus operations.
+
         """
         self._connect_api = connect_api
 
@@ -54,6 +54,7 @@ class AdminAPI(IAdminAPI):
         Raises:
             MilvusValidationError: If inputs are invalid.
             MilvusAPIError: If user creation fails.
+
         """
         if not username or not isinstance(username, str) or not password or not isinstance(password, str):
             raise MilvusValidationError("Username and password must be non-empty strings")
@@ -65,7 +66,7 @@ class AdminAPI(IAdminAPI):
             raise MilvusAPIError(f"User creation failed: {e}")
 
     @async_log_decorator
-    def list_users(self) -> List[str]:
+    def list_users(self) -> list[str]:
         """Lists all users in Milvus.
 
         Returns:
@@ -73,6 +74,7 @@ class AdminAPI(IAdminAPI):
 
         Raises:
             MilvusAPIError: If listing fails.
+
         """
         try:
             users = self._connect_api.client.list_users()

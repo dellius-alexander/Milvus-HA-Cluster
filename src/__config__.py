@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # File: __config__.py: Project configuration file
 # --------------------------------------------------------------
+import logging
 import os
 import time
+
 import dotenv
-import logging
 
 log = logging.getLogger(__name__)
 # --------------------------------------------------------------
@@ -80,8 +80,3 @@ log_config = {
     },
 }
 
-# if __name__ == "__main__":
-#     # Test the configuration
-#     print("Loaded Environment Variables:")
-#     for key, value in os.environ.items():
-#         print(f"{key}: {value}")

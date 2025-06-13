@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # File: src.milvus.py
-"""
-Milvus API Implementation
+"""Milvus API Implementation
 
 This module provides a robust, extensible, and maintainable interface to the Milvus vector database using Python.
 It integrates core functionality for managing collections, vectors, indexes, and embeddings, with support for
@@ -57,12 +55,18 @@ asyncio.run(main())
 ```
 """
 import datetime
-from typing import List, Dict, Any, Optional, Callable, Union
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 from pymilvus import (
-    FieldSchema, Collection, MilvusException, CollectionSchema, )
+    Collection,
+    CollectionSchema,
+    FieldSchema,
+    MilvusException,
+)
 
+from src.logger import getLogger as GetLogger
 from src.milvus.admin import AdminAPI
 from src.milvus.collection import CollectionAPI
 from src.milvus.data import DataImportAPI
@@ -76,7 +80,6 @@ from src.milvus.search import SearchAPI
 from src.milvus.stats import StatAPI
 from src.milvus.vector import VectorAPI
 from src.utils import async_log_decorator
-from src.logger import getLogger as GetLogger
 
 # Logging setup
 log = GetLogger(__name__)
@@ -85,8 +88,7 @@ log = GetLogger(__name__)
 # Implementation Classes
 
 class MilvusAPI:
-    """
-    Facade class integrating all Milvus APIs for a unified interface.
+    """Facade class integrating all Milvus APIs for a unified interface.
 
     Provides a simplified API for interacting with Milvus, supporting operations like
     collection management, vector operations, searches, and administration.
@@ -138,13 +140,14 @@ class MilvusAPI:
     Raises:
         MilvusAPIError: If any operation fails.
         MilvusValidationError: If input parameters are invalid.
+
     """
+
     _instance = None
     _initialized = False
 
     def __new__(cls, *args, **kwargs):
-        """
-        Ensures a singleton instance of ConnectAPI.
+        """Ensures a singleton instance of ConnectAPI.
 
         Args:
             *args: Positional arguments.
@@ -152,6 +155,7 @@ class MilvusAPI:
 
         Returns:
             ConnectAPI: The singleton instance.
+
         """
         if cls._instance is None:
             cls._instance = super().__new__(cls)
@@ -165,6 +169,7 @@ class MilvusAPI:
 
         Args:
             connect_api (IConnectAPI): Connection API instance.
+
         """
         if not hasattr(self, '_initialized') or not self._initialized:
             self._connect_api = connect_api
@@ -185,17 +190,17 @@ class MilvusAPI:
 
     @async_log_decorator
     async def create_collection(self, collection_name: str,
-                                fields: List[FieldSchema],
+                                fields: list[FieldSchema],
                                 database_name: str = "default",
-                                dimension: Union[int, None] = None,
+                                dimension: int | None = None,
                                 primary_field_name: str = "id",
                                 id_type: str = "int",
                                 vector_field_name: str = "vector",
                                 metric_type: str = "COSINE",
                                 auto_id: bool = False,
-                                timeout: Union[float, None] = None,
-                                schema: Union[CollectionSchema, None] = None,
-                                index_params: Union[Dict, None] = None, **kwargs) -> Collection:
+                                timeout: float | None = None,
+                                schema: CollectionSchema | None = None,
+                                index_params: dict | None = None, **kwargs) -> Collection:
         """Creates a new collection.
 
         Args:
@@ -218,6 +223,7 @@ class MilvusAPI:
 
         Raises:
             MilvusAPIError: If creation fails.
+
         """
         try:
             return await self._collection_api.create_collection(
@@ -240,7 +246,7 @@ class MilvusAPI:
             raise MilvusAPIError(f"Collection creation failed: {e}")
 
     @async_log_decorator
-    async def drop_collection(self, collection_name: str, timeout: float = 10) -> Dict[str, str]:
+    async def drop_collection(self, collection_name: str, timeout: float = 10) -> dict[str, str]:
         """Drops a collection.
 
         Args:
@@ -254,8 +260,8 @@ class MilvusAPI:
         return await self._collection_api.drop_collection(collection_name, timeout=timeout)
 
     @async_log_decorator
-    async def insert(self, collection_name: str, entities: List[Dict[str, Any]], partition_name: Optional[str] = None,
-                     database_name: str = "default") -> Dict:
+    async def insert(self, collection_name: str, entities: list[dict[str, Any]], partition_name: str | None = None,
+                     database_name: str = "default") -> dict:
         """Inserts entities into a collection.
 
         Args:
@@ -271,7 +277,7 @@ class MilvusAPI:
         return await self._vector_api.insert(collection_name, entities, partition_name, database_name)
 
     @async_log_decorator
-    def delete(self, collection_name: str, expr: str, partition_name: Optional[str] = None,
+    def delete(self, collection_name: str, expr: str, partition_name: str | None = None,
                      database_name: str = "default") -> None:
         """Deletes entities from a collection.
 
@@ -280,14 +286,15 @@ class MilvusAPI:
             expr (str): Expression to filter entities for deletion.
             partition_name (Optional[str]): Partition name. Defaults to None.
             database_name (str): Database name. Defaults to "default".
+
         """
         self._vector_api.delete(collection_name, expr, partition_name, database_name)
 
     @async_log_decorator
-    async def search(self, collection_name: str, data: List[List[float]], anns_field: str, search_params: Dict[str, Any],
-                     limit: int, expr: Optional[str] = None, output_fields: Optional[List[str]] = None,
-                     partition_names: Optional[List[str]] = None, database_name: str = "default",
-                     rerank: bool = False, **kwargs) -> List[Dict]:
+    async def search(self, collection_name: str, data: list[list[float]], anns_field: str, search_params: dict[str, Any],
+                     limit: int, expr: str | None = None, output_fields: list[str] | None = None,
+                     partition_names: list[str] | None = None, database_name: str = "default",
+                     rerank: bool = False, **kwargs) -> list[dict]:
         """Searches for vectors in a collection.
 
         Args:
@@ -305,6 +312,7 @@ class MilvusAPI:
 
         Returns:
             List[Dict]: Search results.
+
         """
         return await self._search_api.search(
             collection_name,
@@ -322,7 +330,7 @@ class MilvusAPI:
     @async_log_decorator
     def create_index(self,
                            collection_name: str, field_name: str,
-                           index_params: Dict, database_name: str = "default", **kwargs) -> None:
+                           index_params: dict, database_name: str = "default", **kwargs) -> None:
         """Creates an index on a field.
 
         Args:
@@ -343,6 +351,7 @@ class MilvusAPI:
             collection_name (str): Name of the collection.
             field_name (str): Field with the index.
             database_name (str): Database name. Defaults to "default".
+
         """
         self._index_api.drop_index(collection_name, field_name, database_name)
 
@@ -354,21 +363,24 @@ class MilvusAPI:
             collection_name (str): Name of the collection.
             partition_name (str): Name of the partition.
             database_name (str): Database name. Defaults to "default".
+
         """
         self._partition_api.create_partition(collection_name, partition_name, database_name)
 
     @async_log_decorator
     def drop_partition(self, collection_name: str, partition_name: str, database_name: str = "default") -> None:
         """Drops a partition from a collection.
+
         Args:
             collection_name (str): Name of the collection.
             partition_name (str): Name of the partition.
             database_name (str): Database name. Defaults to "default".
+
         """
         self._partition_api.drop_partition(collection_name, partition_name, database_name)
 
     @async_log_decorator
-    def get_collection_stats(self, collection_name: str, database_name: str = "default") -> Dict[str, Any]:
+    def get_collection_stats(self, collection_name: str, database_name: str = "default") -> dict[str, Any]:
         """Gets collection statistics.
 
         Args:
@@ -377,13 +389,13 @@ class MilvusAPI:
 
         Returns:
             Dict[str, Any]: Collection statistics.
+
         """
         return self._stat_api.get_collection_stats(collection_name, database_name)
 
     @async_log_decorator
-    def get_monitor_info(self) -> Dict[str, Any]:
-        """
-        Gets server monitoring information.
+    def get_monitor_info(self) -> dict[str, Any]:
+        """Gets server monitoring information.
 
         Returns:
             Dict[str, Any]: Monitoring metrics.
@@ -392,10 +404,9 @@ class MilvusAPI:
         return self._monitor_api.get_monitor_info()
 
     @async_log_decorator
-    def generate_embeddings(self, data: List[Any], embedding_model: Callable[[List[Any]], np.ndarray],
+    def generate_embeddings(self, data: list[Any], embedding_model: Callable[[list[Any]], np.ndarray],
                                   embedding_type: str = "float", batch_size: int = 32) -> np.ndarray:
-        """
-        Generates embeddings for data.
+        """Generates embeddings for data.
 
         Args:
             data (List[Any]): Data to embed.
@@ -405,34 +416,34 @@ class MilvusAPI:
 
         Returns:
             np.ndarray: Generated embeddings.
+
         """
         return self._embedding_api.generate_embeddings(data, embedding_model, embedding_type, batch_size)
 
     @async_log_decorator
     def create_user(self, username: str, password: str) -> None:
-        """
-        Creates a new user.
+        """Creates a new user.
 
         Args:
             username (str): Username for the new user.
             password (str): Password for the new user.
+
         """
         self._admin_api.create_user(username, password)
 
     @async_log_decorator
-    def list_users(self) -> List[str]:
-        """
-        Lists all users.
+    def list_users(self) -> list[str]:
+        """Lists all users.
 
         Returns:
             List[str]: List of usernames.
+
         """
         return self._admin_api.list_users()
 
     @async_log_decorator
     def import_data(self, collection_name: str, file_path: str, database_name: str = "default") -> None:
-        """
-        Imports data into a collection.
+        """Imports data into a collection.
 
         Args:
             collection_name (str): Name of the collection.

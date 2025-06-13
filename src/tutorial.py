@@ -2,25 +2,24 @@ import asyncio
 import os
 
 import numpy as np
-from typing import List, Dict, Any
-from pymilvus import FieldSchema, DataType, Collection, model
-from src.milvus.milvus import MilvusAPI
-from src.milvus.connect import ConnectAPI
+from pymilvus import DataType, FieldSchema, model
+
 from src.logger import getLogger as GetLogger
+from src.milvus.connect import ConnectAPI
+from src.milvus.milvus import MilvusAPI
 
 # Logging setup
 log = GetLogger(__name__)
 
 
 # Placeholder: Simulating 10 words with random 50-dim embeddings
-def placeholder_embedding_model(data: List[str]) -> np.ndarray:
+def placeholder_embedding_model(data: list[str]) -> np.ndarray:
     """Placeholder embedding model returning random 50-dim vectors."""
     return np.random.random((len(data), 50)).astype(np.float32)
 
 
 async def main():
-    """
-    Implements the Attu quickstart tutorial using the provided MilvusAPI implementation.
+    """Implements the Attu quickstart tutorial using the provided MilvusAPI implementation.
     Steps:
     1. Connect to Milvus server
     2. Create a collection
@@ -115,7 +114,7 @@ async def main():
             index_params=index_params,
             database_name=os.environ["MILVUS_DB"]
         )
-        log.info(f"Index created successfully")
+        log.info("Index created successfully")
     except Exception as e:
         log.error(f"Failed to create index: {e}")
         await api.drop_collection(collection_name)

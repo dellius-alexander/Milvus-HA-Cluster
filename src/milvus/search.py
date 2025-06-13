@@ -1,19 +1,18 @@
-from typing import List, Dict, Any, Optional
+from typing import Any
 
 from pymilvus import Collection, MilvusException
 
-from src.milvus.exceptions import MilvusValidationError, MilvusAPIError
-from src.milvus.interfaces import IStrategy, ISearchAPI, IConnectAPI
-from src.utils import async_log_decorator
 from src.logger import getLogger as GetLogger
+from src.milvus.exceptions import MilvusAPIError, MilvusValidationError
+from src.milvus.interfaces import IConnectAPI, ISearchAPI, IStrategy
+from src.utils import async_log_decorator
 
 # Logging setup
 log = GetLogger(__name__)
 
 
 class SearchAPI(ISearchAPI):
-    """
-    Manages vector searches in Milvus with optional reranking.
+    """Manages vector searches in Milvus with optional reranking.
 
     Implements the ISearchAPI interface to handle search operations.
 
@@ -33,6 +32,7 @@ class SearchAPI(ISearchAPI):
     Raises:
         MilvusAPIError: If search operations fail.
         MilvusValidationError: If input parameters are invalid.
+
     """
 
     def __init__(self, connect_api: IConnectAPI):
@@ -41,13 +41,13 @@ class SearchAPI(ISearchAPI):
 
     @async_log_decorator
     async def search(self,
-                     collection_name: str, data: List[List[float]],
-                     anns_field: str, param: Dict[str, Any],
-                     limit: int, expr: Optional[str] = None,
-                     output_fields: Optional[List[str]] = None,
-                     partition_names: Optional[List[str]] = None,
+                     collection_name: str, data: list[list[float]],
+                     anns_field: str, param: dict[str, Any],
+                     limit: int, expr: str | None = None,
+                     output_fields: list[str] | None = None,
+                     partition_names: list[str] | None = None,
                      database_name: str = "default",
-                     rerank: bool = False, **kwargs) -> List[Dict]:
+                     rerank: bool = False, **kwargs) -> list[dict]:
         """Performs a vector search in the specified collection.
 
         Args:
@@ -69,6 +69,7 @@ class SearchAPI(ISearchAPI):
         Raises:
             MilvusValidationError: If inputs are invalid.
             MilvusAPIError: If search fails.
+
         """
         if not collection_name or not isinstance(collection_name, str):
             raise MilvusValidationError("Collection name must be a non-empty string")
@@ -112,7 +113,7 @@ class SearchAPI(ISearchAPI):
             raise MilvusAPIError(f"Search failed: {e}")
 
     @async_log_decorator
-    def _rerank_results(self, results: List[Dict]) -> List[Dict]:
+    def _rerank_results(self, results: list[dict]) -> list[dict]:
         """Reranks search results by distance.
 
         Args:
@@ -120,13 +121,13 @@ class SearchAPI(ISearchAPI):
 
         Returns:
             List[Dict]: Reranked results.
+
         """
         return sorted(results, key=lambda x: x["distance"])
 
 
 class SearchStrategy(IStrategy):
-    """
-    Strategy for searching data in Milvus collections.
+    """Strategy for searching data in Milvus collections.
 
     Implements the IStrategy interface to define search behavior.
 
@@ -143,15 +144,16 @@ class SearchStrategy(IStrategy):
     Raises:
         MilvusAPIError: If the search operation fails.
         MilvusValidationError: If input parameters are invalid.
+
     """
+
     def execute(self,
                       api: ISearchAPI,
                       collection_name: str,
-                      data: List[List[float]],
+                      data: list[list[float]],
                       anns_field: str,
                       limit: int, **kwargs):
-        """
-        Performs the search operation.
+        """Performs the search operation.
 
         Args:
             api (ISearchAPI): The search API instance.
@@ -163,6 +165,7 @@ class SearchStrategy(IStrategy):
 
         Returns:
             Any: Result of the search operation.
-       """
+
+        """
         return api.search(collection_name, data, anns_field, {"metric_type": "COSINE"}, limit, **kwargs)
 

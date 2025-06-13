@@ -1,55 +1,42 @@
 # haproxy.Dockerfile
 # Builds an HAProxy image for load balancing a Patroni PostgreSQL cluster.
-# Uses ssl_config.yml to configure SSL for Patroni REST API health checks.
-# Toggles SSL with ENABLE_SSL environment variable.
+# Supports SSL in production (ENVIRONMENT=prod) and non-SSL in development (ENVIRONMENT=dev).
+# Uses HashiCorp Vault for secrets.
 
 FROM haproxy:2.8
 
 USER root
 
-# Add metadata to the image
+# Add metadata
 LABEL maintainer="Dellius Alexander admin@hyfisolutions.com"
 LABEL description="HAProxy for Patroni PostgreSQL cluster"
 
 # Install dependencies
 RUN apt-get update && \
-    apt-get install -y gettext-base && \
+    apt-get install -y gettext-base curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy configuration files and secrets
-COPY cfg/haproxy.cfg.tmpl /usr/local/etc/haproxy/haproxy.cfg.tmpl
-COPY cfg/ssl_config.yml /tmp/ssl_config.yml
-COPY .secrets/patroni_password.txt /run/secrets/patroni_password
-COPY .secrets/haproxy_stats_password.txt /run/secrets/haproxy_stats_password
-COPY .secrets/postgres_ca_cert.pem /tmp/secrets/postgres_ca_cert.pem
+# Copy configuration files and scripts
+COPY cfg/haproxy.cfg.tmpl /tmp/haproxy.cfg.tmpl
+COPY scripts/fetch_secrets.sh /tmp/fetch_secrets.sh
 
-# Copy CA certificate if ENABLE_SSL is true
-RUN if [ "$ENABLE_SSL" = "true" ]; then \
-        cp /tmp/secrets/postgres_ca_cert.pem /run/secrets/postgres_ca_cert && \
-        chown haproxy:haproxy /run/secrets/postgres_ca_cert && \
-        chmod 600 /run/secrets/postgres_ca_cert; \
-    fi
-
-# Set permissions for secrets
-RUN chown haproxy:haproxy \
-    /run/secrets/patroni_password \
-    /run/secrets/haproxy_stats_password && \
-    chmod 600 /run/secrets/patroni_password \
-    /run/secrets/haproxy_stats_password
+# Run fetch_secrets.sh to retrieve secrets from Vault
+RUN bash /tmp/fetch_secrets.sh && \
+    rm /tmp/fetch_secrets.sh
 
 # Generate haproxy.cfg with environment variable substitution
-RUN envsubst < /usr/local/etc/haproxy/haproxy.cfg.tmpl > /usr/local/etc/haproxy/haproxy.cfg && \
-    rm /usr/local/etc/haproxy/haproxy.cfg.tmpl /tmp/ssl_config.yml
+RUN envsubst < /tmp/haproxy.cfg.tmpl > /usr/local/etc/haproxy/haproxy.cfg && \
+    rm /tmp/haproxy.cfg.tmpl
 
 USER haproxy
 
 # Expose HAProxy ports
-EXPOSE 5432 8080
+EXPOSE 5432 5433 8080
 
 # Run HAProxy
 CMD ["haproxy", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
 
 # Notes:
-# - SSL settings for health checks are sourced from ssl_config.yml.
-# - CA certificate is copied only if ENABLE_SSL=true.
-# - File permissions are set to 600 for sensitive files.
+# - Secrets are fetched from HashiCorp Vault via fetch_secrets.sh.
+# - Set ENVIRONMENT=prod for SSL-enabled health checks; ENVIRONMENT=dev for non-SSL.
+# - Monitor HAProxy stats dashboard at port 8080.

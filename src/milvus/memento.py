@@ -1,8 +1,7 @@
 
 
 class Memento:
-    """
-    Memento for saving state.
+    """Memento for saving state.
 
     Stores the state of an object for later restoration.
 
@@ -16,6 +15,7 @@ class Memento:
 
     Raises:
         MilvusValidationError: If the state is invalid.
+
     """
 
     def __init__(self, state):

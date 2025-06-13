@@ -125,6 +125,8 @@ celerybeat.pid
 
 # Environments
 /**/.env
+/**/.env.*
+
 # Virtual environments
 .venv
 env/
@@ -164,6 +166,20 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 
+
+# UV #  UV is a package manager for Python that manages virtual environments and dependencies.
+# Ignore UV managed virtual environments
+/.uv/
+# Ignore UV managed packages
+/.uv-packages/
+# Ignore UV managed cache
+/.uv-cache/
+# Ignore UV managed configuration files
+/.uv-config.toml
+# Ignore UV managed lock files
+/.uv-lock.toml
+/**/uv.lock
+
 # MacOS system files
 /**/.DS_Store
 /**/._.DS_Store
@@ -176,3 +192,4 @@ cython_debug/
 
 /.devcontainer/services/postgres/.env.patroni
 /docs/
+/prompt.md

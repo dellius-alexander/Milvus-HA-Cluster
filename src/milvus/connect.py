@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # File: src/milvus/connect.py
-"""
-ConnectAPI and AsyncMilvusClientWrapper
+"""ConnectAPI and AsyncMilvusClientWrapper
 Handles connections to the Milvus server using synchronous and asynchronous operations.
 Implements the IConnectAPI interface to manage connection establishment and disconnection.
 Uses the Singleton pattern to ensure a single connection instance.
@@ -38,28 +36,32 @@ Example Usage:
 
 import datetime
 import json
-from dataclasses import dataclass
-from tracemalloc import Traceback
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import os
 import traceback
-from typing import Optional, Any, Dict, Union
-from pymilvus import MilvusException, MilvusClient
-from pymilvus.orm import utility
+from dataclasses import dataclass
+from tracemalloc import Traceback
+from typing import Any
 
-from src.utils import ConfigManager, SecurityManager, async_log_decorator
+from pymilvus import MilvusClient, MilvusException
+from pymilvus.orm import utility
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
+
 from src.logger import getLogger as GetLogger
 from src.milvus.exceptions import MilvusAPIError
 from src.milvus.interfaces import IConnectAPI
-from src.utils import log_decorator
+from src.utils import ConfigManager, SecurityManager, async_log_decorator, log_decorator
 
 # Logging setup
 log = GetLogger(__name__)
 
 @dataclass
 class ConnectAPI(IConnectAPI):
-    """
-    Manages connections to the Milvus server using synchronous operations.
+    """Manages connections to the Milvus server using synchronous operations.
 
     Implements the IConnectAPI interface to handle connection establishment and disconnection.
     Uses the Singleton pattern to ensure a single connection instance.
@@ -102,7 +104,9 @@ class ConnectAPI(IConnectAPI):
     Raises:
         MilvusAPIError: If connection or disconnection fails.
         MilvusValidationError: If connection parameters are invalid.
+
     """
+
     __instance: 'ConnectAPI' = None
     _initialized: bool = False
     _uri: str = "http://localhost:19530"
@@ -111,12 +115,11 @@ class ConnectAPI(IConnectAPI):
     _db_name: str = ""
     __token: str = ""
     _timeout: float = None
-    _kwargs: Dict = None
-    client: Optional[MilvusClient] = None
+    _kwargs: dict = None
+    client: MilvusClient | None = None
 
     def __new__(cls, *args, **kwargs):
-        """
-        Ensures a singleton instance of ConnectAPI.
+        """Ensures a singleton instance of ConnectAPI.
 
         Args:
             *args: Positional arguments.
@@ -124,6 +127,7 @@ class ConnectAPI(IConnectAPI):
 
         Returns:
             ConnectAPI: The singleton instance.
+
         """
         if cls.__instance is None:
             cls.__instance = super(ConnectAPI, cls).__new__(cls)
@@ -140,11 +144,10 @@ class ConnectAPI(IConnectAPI):
         password: str = "",
         db_name: str = "",
         token: str = "",
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
         **kwargs: Any
     ):
-        """
-        Initializes ConnectAPI with connection parameters.
+        """Initializes ConnectAPI with connection parameters.
 
         Args:
             alias (str): Connection alias. Defaults to "default".
@@ -155,6 +158,7 @@ class ConnectAPI(IConnectAPI):
             token (str): Token for authentication. Defaults to "".
             timeout (Optional[float]): Connection timeout in seconds. Defaults to None.
             **kwargs: Additional arguments for the Milvus client.
+
         """
         if not hasattr(self, '_initialized') or not self._initialized:
             host_port = uri.split("//")[-1].split(":")
@@ -170,13 +174,12 @@ class ConnectAPI(IConnectAPI):
             self._kwargs = kwargs
             self._initialized = False
 
-            log.info(f"ConnectAPI initialized...")
+            log.info("ConnectAPI initialized...")
         else:
             log.warning("ConnectAPI instance already exists. Using existing parameters.")
 
-    def _check_and_create_database(self, db_name: str, timeout: Optional[float]) -> bool:
-        """
-        Checks if the specified database exists, creates it if it doesn't.
+    def _check_and_create_database(self, db_name: str, timeout: float | None) -> bool:
+        """Checks if the specified database exists, creates it if it doesn't.
 
         Args:
             db_name (str): Name of the database to check/create.
@@ -187,6 +190,7 @@ class ConnectAPI(IConnectAPI):
 
         Raises:
             MilvusAPIError: If database creation fails.
+
         """
         try:
             databases = self.client.list_databases(timeout=timeout)
@@ -209,11 +213,10 @@ class ConnectAPI(IConnectAPI):
         password: str = "",
         db_name: str = "",
         token: str = "",
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
         **kwargs: Any
     ):
-        """
-        Establishes a connection to the Milvus server.
+        """Establishes a connection to the Milvus server.
 
         Args:
             alias (str): Connection alias. Defaults to "default".
@@ -224,6 +227,7 @@ class ConnectAPI(IConnectAPI):
             token (str): Token for authentication. Defaults to "".
             timeout (Optional[float]): Connection timeout in seconds. Defaults to None.
             **kwargs: Additional arguments for the Milvus client.
+
         """
         if not self._initialized:
             self._timeout = timeout
@@ -255,11 +259,10 @@ class ConnectAPI(IConnectAPI):
         password: str,
         db_name: str,
         token: str,
-        timeout: Optional[float],
+        timeout: float | None,
         **kwargs: Any
     ):
-        """
-        Internal method to connect with retry logic.
+        """Internal method to connect with retry logic.
         This method is decorated with retry logic to handle connection failures.
         It will attempt to connect up to 3 times with exponential backoff.
         If the connection fails after 3 attempts, a MilvusAPIError is raised.
@@ -280,6 +283,7 @@ class ConnectAPI(IConnectAPI):
 
         Raises:
             MilvusAPIError: If connection fails after retries.
+
         """
         try:
             log.info(f" ConnectAPI: {self}")
@@ -303,11 +307,11 @@ class ConnectAPI(IConnectAPI):
 
     @log_decorator
     def disconnect(self):
-        """
-        Disconnects from the Milvus server.
+        """Disconnects from the Milvus server.
 
         Raises:
             MilvusAPIError: If disconnection fails.
+
         """
         try:
             if self.client is not None:
@@ -321,11 +325,11 @@ class ConnectAPI(IConnectAPI):
 
     @log_decorator
     def __enter__(self):
-        """
-        Enters the context, establishing the connection.
+        """Enters the context, establishing the connection.
 
         Returns:
             ConnectAPI: The instance of ConnectAPI.
+
         """
         if not self._initialized:
             self.connect(
@@ -340,9 +344,8 @@ class ConnectAPI(IConnectAPI):
         return self
 
     @log_decorator
-    def __exit__(self, exc_type: Optional[type], exc_val: Optional[Exception], exc_tb: Optional[Traceback]):
-        """
-        Exits the context, disconnecting from the server.
+    def __exit__(self, exc_type: type | None, exc_val: Exception | None, exc_tb: Traceback | None):
+        """Exits the context, disconnecting from the server.
 
         Args:
             exc_type (Optional[type]): The exception type, if any.
@@ -351,6 +354,7 @@ class ConnectAPI(IConnectAPI):
 
         Raises:
             MilvusAPIError: If disconnection fails.
+
         """
         try:
             if exc_type is not None:
@@ -365,7 +369,7 @@ class ConnectAPI(IConnectAPI):
             log.error(f"Failed to disconnect: {e}")
             raise MilvusAPIError(f"Disconnection failed: {e}")
 
-    def __dict__(self) -> Dict:
+    def __dict__(self) -> dict:
         return {
             "uri": self._uri,
             "alias": self._alias,
@@ -393,8 +397,7 @@ class ConnectAPI(IConnectAPI):
 
 
 class AsyncMilvusClientWrapper(utility.connections):
-    """
-    A wrapper for AsyncMilvusClient to provide additional functionality.
+    """A wrapper for AsyncMilvusClient to provide additional functionality.
 
     Args:
         uri (str): Milvus server URI. Defaults to "http://localhost:19530".
@@ -404,12 +407,13 @@ class AsyncMilvusClientWrapper(utility.connections):
         token (str): Token for authentication. Defaults to an empty string.
         timeout (Optional[float]): Timeout for requests. Defaults to None.
         **kwargs (Any): Additional arguments for the client.
+
     """
+
     _instance = None
 
     def __new__(cls, *args, **kwargs):
-        """
-        Ensures a singleton instance of ConnectAPI.
+        """Ensures a singleton instance of ConnectAPI.
 
         Args:
             *args: Positional arguments.
@@ -417,6 +421,7 @@ class AsyncMilvusClientWrapper(utility.connections):
 
         Returns:
             ConnectAPI: The singleton instance.
+
         """
         if cls._instance is None:
             cls._instance = super().__new__(cls)
@@ -431,7 +436,7 @@ class AsyncMilvusClientWrapper(utility.connections):
                  host: str = "localhost",
                  port: int = 19530,
                  token: str = "",
-                 timeout: Optional[float] = None,
+                 timeout: float | None = None,
                  **kwargs: Any) -> None:
         if not hasattr(self, '_initialized') or not self._initialized:
             super().__init__(self, uri=uri,
@@ -466,9 +471,8 @@ class AsyncMilvusClientWrapper(utility.connections):
         else:
             log.warning("AsyncMilvusClientWrapper instance already exists. Using existing parameters.")
 
-    async def _check_and_create_database(self, db_name: str, timeout: Optional[float]) -> bool:
-        """
-        Checks if the specified database exists, creates it if it doesn't.
+    async def _check_and_create_database(self, db_name: str, timeout: float | None) -> bool:
+        """Checks if the specified database exists, creates it if it doesn't.
 
         Args:
             db_name (str): Name of the database to check/create.
@@ -479,6 +483,7 @@ class AsyncMilvusClientWrapper(utility.connections):
 
         Raises:
             MilvusAPIError: If database creation fails.
+
         """
         try:
             databases = await utility.list_databases(using=self._alias, timeout=timeout)
@@ -495,9 +500,8 @@ class AsyncMilvusClientWrapper(utility.connections):
     @async_log_decorator
     async def has_collection(self, collection_name: str,
                              using: str = "default",
-                             timeout: Optional[float] = None) -> bool:
-        """
-        Check if a collection exists.
+                             timeout: float | None = None) -> bool:
+        """Check if a collection exists.
 
         Args:
             collection_name (str): Name of the collection.
@@ -506,23 +510,23 @@ class AsyncMilvusClientWrapper(utility.connections):
 
         Returns:
             bool: True if the collection exists, False otherwise.
+
         """
         return await utility.has_collection(collection_name=collection_name, using=using, timeout=timeout)
 
     async def __aenter__(self):
-        """
-        Enter the runtime context related to this object.
+        """Enter the runtime context related to this object.
 
         Returns:
             self: The instance of AsyncMilvusClientWrapper.
+
         """
         if self._initialized and self._db_name:
             await self._check_and_create_database(self._db_name, self._timeout)
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """
-        Exit the runtime context related to this object.
+        """Exit the runtime context related to this object.
 
         Args:
             exc_type (type): The exception type.
@@ -531,6 +535,7 @@ class AsyncMilvusClientWrapper(utility.connections):
 
         Raises:
             MilvusAPIError: If disconnection fails.
+
         """
         try:
             if exc_type is not None:
@@ -546,7 +551,7 @@ class AsyncMilvusClientWrapper(utility.connections):
             log.error(f"Failed to disconnect: {e}")
             raise MilvusAPIError(f"Disconnection failed: {e}")
 
-    def __dict__(self) -> Dict:
+    def __dict__(self) -> dict:
         return {
             "uri": self._uri,
             "alias": self._alias,

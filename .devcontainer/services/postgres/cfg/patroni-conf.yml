@@ -1,7 +1,8 @@
 # patroni-conf.yml
 # Patroni configuration for a PostgreSQL high-availability cluster.
-# Uses environment variables and Docker secrets for sensitive data.
-# Configures SSL/TLS and .pgpass for secure PostgreSQL authentication.
+# Supports both production (SSL enabled) and development (SSL disabled) environments.
+# Uses environment variables for configuration and HashiCorp Vault for secrets.
+# Templated with envsubst for dynamic configuration.
 
 scope: ${PATRONI_SCOPE}
 namespace: ${PATRONI_NAMESPACE}
@@ -12,11 +13,12 @@ restapi:
   connect_address: ${PATRONI_RESTAPI_CONNECT_ADDRESS}
   authentication:
     username: ${PATRONI_RESTAPI_USERNAME}
-    password: $(cat ${PATRONI_RESTAPI_PASSWORD_FILE})
-  certfile: ${PATRONI_RESTAPI_CERTFILE}
-  keyfile: ${PATRONI_RESTAPI_KEYFILE}
-  cafile: ${PATRONI_RESTAPI_CAFILE}
-  verify_client: ${PATRONI_RESTAPI_VERIFY_CLIENT}
+    password: ${PATRONI_RESTAPI_PASSWORD}
+  # SSL for REST API (production only)
+  certfile: ${ENVIRONMENT:-dev} = "prod" ? ${PATRONI_RESTAPI_CERTFILE} : ""
+  keyfile: ${ENVIRONMENT:-dev} = "prod" ? ${PATRONI_RESTAPI_KEYFILE} : ""
+  cafile: ${ENVIRONMENT:-dev} = "prod" ? ${PATRONI_RESTAPI_CAFILE} : ""
+  verify_client: ${ENVIRONMENT:-dev} = "prod" ? ${PATRONI_RESTAPI_VERIFY_CLIENT} : none
   allowlist: ${PATRONI_RESTAPI_ALLOWLIST}
   allowlist_include_members: ${PATRONI_RESTAPI_ALLOWLIST_INCLUDE_MEMBERS}
 
@@ -35,8 +37,8 @@ bootstrap:
     postgresql:
       use_pg_rewind: true
       pg_hba:
-        - hostssl all all 0.0.0.0/0 md5  # Require SSL for all connections
-        - hostssl replication ${PATRONI_POSTGRESQL_REPLICATION_USERNAME} 0.0.0.0/0 md5
+        - ${ENVIRONMENT:-dev} = "prod" ? hostssl all all 0.0.0.0/0 md5 : host all all 0.0.0.0/0 md5
+        - ${ENVIRONMENT:-dev} = "prod" ? hostssl replication ${PATRONI_POSTGRESQL_REPLICATION_USERNAME} 0.0.0.0/0 md5 : host replication ${PATRONI_POSTGRESQL_REPLICATION_USERNAME} 0.0.0.0/0 md5
       use_slots: true
       parameters:
         max_connections: 100
@@ -50,10 +52,10 @@ bootstrap:
         archive_mode: "on"
         archive_command: "mkdir -p ../archive && cp %p ../archive/%f"
         hot_standby_feedback: "on"
-        ssl: "on"
-        ssl_cert_file: /var/lib/postgresql/data/server.crt
-        ssl_key_file: /var/lib/postgresql/data/server.key
-        ssl_ca_file: ${PATRONI_REPLICATION_SSLROOTCERT}
+        ssl: ${ENVIRONMENT:-dev} = "prod" ? "on" : "off"
+        ssl_cert_file: ${ENVIRONMENT:-dev} = "prod" ? /var/lib/postgresql/data/server.crt : ""
+        ssl_key_file: ${ENVIRONMENT:-dev} = "prod" ? /var/lib/postgresql/data/server.key : ""
+        ssl_ca_file: ${ENVIRONMENT:-dev} = "prod" ? ${PATRONI_REPLICATION_SSLROOTCERT} : ""
   initdb:
     - encoding: UTF8
     - data-checksums
@@ -66,10 +68,10 @@ postgresql:
   authentication:
     superuser:
       username: ${PATRONI_POSTGRESQL_USERNAME}
-      password: $(cat ${POSTGRES_PASSWORD_FILE})
+      password: ${PATRONI_POSTGRESQL_PASSWORD}
     replication:
       username: ${PATRONI_POSTGRESQL_REPLICATION_USERNAME}
-      password: $(cat ${PATRONI_POSTGRESQL_REPLICATION_PASSWORD_FILE})
+      password: ${PATRONI_POSTGRESQL_REPLICATION_PASSWORD}
   parameters:
     unix_socket_directories: /var/run/postgresql
     archive_timeout: 600
@@ -97,9 +99,7 @@ tags:
   nosync: false
 
 # Notes:
-# - Passwords are read from Docker secrets via file paths.
-# - The .pgpass file is specified via PGPASSFILE for PostgreSQL authentication.
-# - SSL/TLS is enabled with hostssl in pg_hba for secure connections.
-# - REST API is secured with SSL and client certificate verification.
-# - In production, ensure valid SSL certificates are provided.
+# - Passwords and SSL certificates are fetched from HashiCorp Vault via a sidecar.
+# - Set ENVIRONMENT=prod for SSL-enabled production; ENVIRONMENT=dev for non-SSL development.
 # - Use patronictl to manage and monitor the cluster.
+# - Monitor logs via /var/log/patroni for configuration changes and errors.

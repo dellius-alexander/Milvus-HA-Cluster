@@ -1,18 +1,16 @@
-from typing import Dict
 
 from pymilvus import Collection, MilvusException
 
-from src.milvus.exceptions import MilvusValidationError, MilvusAPIError
-from src.milvus.interfaces import IIndexAPI, IConnectAPI
 from src.logger import getLogger as GetLogger
+from src.milvus.exceptions import MilvusAPIError, MilvusValidationError
+from src.milvus.interfaces import IConnectAPI, IIndexAPI
 from src.utils import async_log_decorator
 
 # Logging setup
 log = GetLogger(__name__)
 
 class IndexAPI(IIndexAPI):
-    """
-    Handles index creation and deletion in Milvus.
+    """Handles index creation and deletion in Milvus.
 
     Implements the IIndexAPI interface to manage indexes on collection fields.
 
@@ -33,6 +31,7 @@ class IndexAPI(IIndexAPI):
     Raises:
         MilvusAPIError: If index operations fail.
         MilvusValidationError: If input parameters are invalid.
+
     """
 
     def __init__(self, connect_api: IConnectAPI):
@@ -41,7 +40,7 @@ class IndexAPI(IIndexAPI):
 
     @async_log_decorator
     def create_index(self, collection_name: str, field_name: str,
-                           index_params: Dict, database_name: str = "default", **kwargs):
+                           index_params: dict, database_name: str = "default", **kwargs):
         """Creates an index on a field in a collection.
 
         Args:
@@ -54,6 +53,7 @@ class IndexAPI(IIndexAPI):
         Raises:
             MilvusValidationError: If inputs are invalid.
             MilvusAPIError: If index creation fails.
+
         """
         if not collection_name or not isinstance(collection_name, str):
             raise MilvusValidationError("Collection name must be a non-empty string")
@@ -81,6 +81,7 @@ class IndexAPI(IIndexAPI):
         Raises:
             MilvusValidationError: If inputs are invalid.
             MilvusAPIError: If index drop fails.
+
         """
         if not collection_name or not isinstance(collection_name, str):
             raise MilvusValidationError("Collection name must be a non-empty string")

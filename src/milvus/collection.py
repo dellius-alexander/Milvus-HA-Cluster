@@ -1,18 +1,23 @@
-from typing import List, Union, Dict, Any
+from typing import Any
 
-from pymilvus import Collection, DataType, FieldSchema, CollectionSchema, MilvusException
+from pymilvus import (
+    Collection,
+    CollectionSchema,
+    DataType,
+    FieldSchema,
+    MilvusException,
+)
 
 from src.logger import getLogger as GetLogger
-from src.milvus.exceptions import MilvusValidationError, MilvusAPIError
-from src.milvus.interfaces import IConnectAPI, ICollectionAPI
+from src.milvus.exceptions import MilvusAPIError, MilvusValidationError
+from src.milvus.interfaces import ICollectionAPI, IConnectAPI
 from src.utils import async_log_decorator, log_decorator
 
 # Logging setup
 log = GetLogger(__name__)
 
 class CollectionComposite:
-    """
-    Composite for managing complex collections.
+    """Composite for managing complex collections.
 
     Allows hierarchical organization of collection components.
 
@@ -32,6 +37,7 @@ class CollectionComposite:
 
     Raises:
         MilvusValidationError: If invalid components are added or removed.
+
     """
 
     def __init__(self, name: str):
@@ -39,27 +45,26 @@ class CollectionComposite:
         self.children = []
 
     def add(self, component):
-        """
-        Adds a component to the composite.
+        """Adds a component to the composite.
 
         Args:
             component: The component to add.
+
         """
         self.children.append(component)
 
     def remove(self, component):
-        """
-        Removes a component from the composite.
+        """Removes a component from the composite.
 
         Args:
             component: The component to remove.
+
         """
         self.children.remove(component)
 
 
 class CollectionPrototype:
-    """
-    Prototype for cloning collections.
+    """Prototype for cloning collections.
 
     Allows creating copies of collections for reuse or modification.
 
@@ -78,25 +83,25 @@ class CollectionPrototype:
 
     Raises:
         MilvusAPIError: If cloning fails.
+
     """
 
     def __init__(self, collection: Collection):
         self.collection = collection
 
     def clone(self):
-        """
-        Creates a deep copy of the collection.
+        """Creates a deep copy of the collection.
 
         Returns:
             Collection: A deep copy of the collection.
+
         """
         from copy import deepcopy
         return deepcopy(self.collection)
 
 
 class CollectionSchemaBuilder:
-    """
-    Builder for constructing CollectionSchema objects.
+    """Builder for constructing CollectionSchema objects.
 
     Allows incremental construction of collection schemas with fields and descriptions.
 
@@ -119,6 +124,7 @@ class CollectionSchemaBuilder:
 
     Raises:
         MilvusValidationError: If the schema is invalid (e.g., no fields).
+
     """
 
     def __init__(self):
@@ -126,8 +132,7 @@ class CollectionSchemaBuilder:
         self._description = ""
 
     def add_field(self, name: str, dtype: DataType, **kwargs):
-        """
-        Adds a field to the schema.
+        """Adds a field to the schema.
 
         Args:
             name (str): Name of the field.
@@ -136,29 +141,30 @@ class CollectionSchemaBuilder:
 
         Returns:
             CollectionSchemaBuilder: Self for method chaining.
+
         """
         self._fields.append(FieldSchema(name=name, dtype=dtype, **kwargs))
         return self
 
     def set_description(self, description: str):
-        """
-        Sets the schema description.
+        """Sets the schema description.
 
         Args:
             description (str): Description of the schema.
 
         Returns:
             CollectionSchemaBuilder: Self for method chaining.
+
         """
         self._description = description
         return self
 
     def build(self) -> CollectionSchema:
-        """
-        Constructs the final CollectionSchema.
+        """Constructs the final CollectionSchema.
 
         Returns:
             CollectionSchema: The constructed schema.
+
         """
         if not self._fields:
             raise MilvusValidationError("Schema must have at least one field")
@@ -166,8 +172,7 @@ class CollectionSchemaBuilder:
 
 
 class CollectionAPI(ICollectionAPI):
-    """
-    Manages Milvus collections with methods for creation, listing, describing, and dropping.
+    """Manages Milvus collections with methods for creation, listing, describing, and dropping.
 
     Implements the ICollectionAPI interface to handle collection-related operations.
 
@@ -191,7 +196,9 @@ class CollectionAPI(ICollectionAPI):
     Raises:
         MilvusAPIError: If collection operations fail.
         MilvusValidationError: If input parameters are invalid.
+
     """
+
     _connect_api: IConnectAPI = None
 
     def __init__(self, connect_api: IConnectAPI):
@@ -199,6 +206,7 @@ class CollectionAPI(ICollectionAPI):
 
         Args:
             connect_api (IConnectAPI): The connection API instance for Milvus operations.
+
         """
         self._connect_api = connect_api
 
@@ -206,14 +214,13 @@ class CollectionAPI(ICollectionAPI):
     @log_decorator
     def _build_collection_schema(self,
                                  collection_name: str,
-                                 fields: List[FieldSchema],
-                                 dimension: Union[int, None],
+                                 fields: list[FieldSchema],
+                                 dimension: int | None,
                                  primary_field_name: str,
                                  id_type: str,
                                  vector_field_name: str,
                                  auto_id: bool) -> CollectionSchema:
-        """
-        Builds a CollectionSchema for the specified collection.
+        """Builds a CollectionSchema for the specified collection.
 
         Args:
             collection_name (str): Name of the collection.
@@ -229,6 +236,7 @@ class CollectionAPI(ICollectionAPI):
 
         Raises:
             MilvusValidationError: If input validation fails.
+
         """
         vector_dtypes = {DataType.FLOAT_VECTOR, DataType.BINARY_VECTOR}
         fields_list = list(fields)
@@ -276,17 +284,17 @@ class CollectionAPI(ICollectionAPI):
     @async_log_decorator
     async def create_collection(self,
                                 collection_name: str,
-                                fields: List[FieldSchema],
+                                fields: list[FieldSchema],
                                 database_name: str = "default",
-                                dimension: Union[int, None] = None,
+                                dimension: int | None = None,
                                 primary_field_name: str = "id",
                                 id_type: str = "int",
                                 vector_field_name: str = "vector",
                                 metric_type: str = "COSINE",
                                 auto_id: bool = False,
-                                timeout: Union[float, None] = None,
-                                schema: Union[CollectionSchema, None] = None,
-                                index_params: Union[Dict, None] = None,
+                                timeout: float | None = None,
+                                schema: CollectionSchema | None = None,
+                                index_params: dict | None = None,
                                 **kwargs) -> Collection:
         """Creates a new collection in the specified database.
 
@@ -308,6 +316,7 @@ class CollectionAPI(ICollectionAPI):
         Raises:
             MilvusValidationError: If inputs are invalid.
             MilvusAPIError: If collection creation fails.
+
         """
         # Validate connection
         if self._connect_api.client is None:
@@ -383,7 +392,7 @@ class CollectionAPI(ICollectionAPI):
             raise MilvusAPIError(f"Collection creation failed: {e}")
 
     @async_log_decorator
-    def list_collections(self, database_name: str = "default") -> List[str]:
+    def list_collections(self, database_name: str = "default") -> list[str]:
         """Lists all collections in the specified database.
 
         Args:
@@ -394,6 +403,7 @@ class CollectionAPI(ICollectionAPI):
 
         Raises:
             MilvusAPIError: If listing fails.
+
         """
         try:
             collections = self._connect_api.client.list_collections(db_name=database_name)
@@ -404,7 +414,7 @@ class CollectionAPI(ICollectionAPI):
             raise MilvusAPIError(f"List collections failed: {e}")
 
     @async_log_decorator
-    def describe_collection(self, collection_name: str, database_name: str = "default") -> Dict[str, Any]:
+    def describe_collection(self, collection_name: str, database_name: str = "default") -> dict[str, Any]:
         """Describes the specified collection.
 
         Args:
@@ -416,6 +426,7 @@ class CollectionAPI(ICollectionAPI):
 
         Raises:
             MilvusAPIError: If description fails.
+
         """
         try:
             desc = self._connect_api.client.describe_collection(
@@ -429,7 +440,7 @@ class CollectionAPI(ICollectionAPI):
             raise MilvusAPIError(f"Describe collection failed: {e}")
 
     @async_log_decorator
-    async def drop_collection(self, collection_name: str, timeout: float = 10) -> Dict[str, str]:
+    async def drop_collection(self, collection_name: str, timeout: float = 10) -> dict[str, str]:
         """Drops the specified collection.
 
         Args:
@@ -441,6 +452,7 @@ class CollectionAPI(ICollectionAPI):
 
         Raises:
             MilvusAPIError: If dropping fails.
+
         """
         try:
             await self._connect_api.client.drop_collection(

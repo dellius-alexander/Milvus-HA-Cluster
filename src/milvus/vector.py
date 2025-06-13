@@ -1,18 +1,17 @@
-from typing import List, Dict, Any, Optional
+from typing import Any
 
 from pymilvus import Collection, MilvusException
 
 from src.logger import getLogger as GetLogger
-from src.milvus.exceptions import MilvusValidationError, MilvusAPIError
-from src.milvus.interfaces import IVectorAPI, IConnectAPI
+from src.milvus.exceptions import MilvusAPIError, MilvusValidationError
+from src.milvus.interfaces import IConnectAPI, IVectorAPI
 from src.utils import async_log_decorator
 
 # Logging setup
 log = GetLogger(__name__)
 
 class VectorAPI(IVectorAPI):
-    """
-    Handles vector operations like insertion and deletion in Milvus.
+    """Handles vector operations like insertion and deletion in Milvus.
 
     Implements the IVectorAPI interface to manage vector data.
 
@@ -33,6 +32,7 @@ class VectorAPI(IVectorAPI):
     Raises:
         MilvusAPIError: If vector operations fail.
         MilvusValidationError: If input parameters are invalid.
+
     """
 
     def __init__(self, connect_api: IConnectAPI):
@@ -40,8 +40,8 @@ class VectorAPI(IVectorAPI):
         self._connect_api = connect_api
 
     @async_log_decorator
-    async def insert(self, collection_name: str, entities: List[Dict[str, Any]], partition_name: Optional[str] = None,
-                     database_name: str = "default") -> Dict:
+    async def insert(self, collection_name: str, entities: list[dict[str, Any]], partition_name: str | None = None,
+                     database_name: str = "default") -> dict:
         """Inserts entities into a collection.
 
         Args:
@@ -56,6 +56,7 @@ class VectorAPI(IVectorAPI):
         Raises:
             MilvusValidationError: If inputs are invalid.
             MilvusAPIError: If insertion fails.
+
         """
         if not collection_name or not isinstance(collection_name, str):
             raise MilvusValidationError("Collection name must be a non-empty string")
@@ -82,7 +83,7 @@ class VectorAPI(IVectorAPI):
             raise MilvusAPIError(f"Insert failed: {e}")
 
     @async_log_decorator
-    def delete(self, collection_name: str, expr: str, partition_name: Optional[str] = None,
+    def delete(self, collection_name: str, expr: str, partition_name: str | None = None,
                      database_name: str = "default"):
         """Deletes entities from a collection based on an expression.
 
@@ -95,6 +96,7 @@ class VectorAPI(IVectorAPI):
         Raises:
             MilvusValidationError: If inputs are invalid.
             MilvusAPIError: If deletion fails.
+
         """
         if not collection_name or not isinstance(collection_name, str):
             raise MilvusValidationError("Collection name must be a non-empty string")
